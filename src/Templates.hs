@@ -2,13 +2,13 @@
 
 module Templates where
 
-import NeatInterpolation
+import Data.Text                (Text)
+import NeatInterpolation        (text)
 
-nativeModule :: String -> String
 -- TODO - should really support a list 
---nativeModule [] = error "Empty fully qualified module path"
-nativeModule modulename =
-  [string|
+nativeModule :: Text -> Text -> Text -> Text
+nativeModule packagename modulename protoSource =
+  [text|
     Elm.Native.$modulename = Elm.Native.$modulename || {}
     Elm.Native.$modulename = function(_elm) {
       "use strict";
@@ -16,5 +16,12 @@ nativeModule modulename =
       if (_elm.Native.$modulename.values) {
         return _elm.Native.$modulename.values
       }
-  ]
+      
+      // .proto source
+      var protoSource = `$protoSource`;
+      
+      var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+      var Proto = ProtoBuilder.build("$packagename");
+    }
+  |]
   
