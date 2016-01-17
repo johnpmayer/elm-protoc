@@ -34,27 +34,50 @@ nativeModuleExport valuename =
         ${valuename}: ${valuename},
   |]
 
-decodeNative typename = 
+nativeDecode typename = 
   [text|
     var decode${typename} = function(blob) {
       return Proto.${typename}.decode(blob);
     }
   |]
 
-decodeElm modulename typename = 
-  [text|
-    decode${typename} : Buffer -> ${typename}Contract
-    decode${typename} = Native.${modulename}.decode${typename}
-  |]
-
-encodeNative typename = 
+nativeEncode typename = 
   [text|
     var encode${typename} = function(message_${typename}} {
       return message_${typename}.toArrayBuffer();
     }
   |]
 
-encodeElm modulename typename =
+elmModule modulename moduleExports contractTypeDefs modulevalues =
+  [text|
+    module ${modulename} 
+      ${moduleExports} ) where
+    
+    import Native.${modulename}
+    
+    -- Opaque Type definitions
+    ${contractTypeDefs}
+    
+    ${modulevalues}
+  |]
+
+elmExport prefix name = 
+  [text|
+      ${prefix} ${name}
+  |]
+  
+elmContractTypeDef typename =
+  [text|
+    type ${typename}Contract = Opaque_${typename}Contract
+  |]
+
+elmDecode modulename typename = 
+  [text|
+    decode${typename} : Buffer -> ${typename}Contract
+    decode${typename} = Native.${modulename}.decode${typename}
+  |]
+
+elmEncode modulename typename =
   [text|
     encode${typename} : ${typename}Contract -> Buffer
     encode${typename} = Native.${modulename}.encode${typename}
