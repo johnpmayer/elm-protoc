@@ -12,7 +12,7 @@ import                                            qualified Data.Text as T
 import Data.Text.Lazy                             (fromStrict, toStrict)
 import Data.Text.Lazy.Encoding                    (decodeUtf8, encodeUtf8)
 import System.Directory                           (createDirectoryIfMissing)
-import System.FilePath                            ((</>),(<.>))
+import System.FilePath                            ((</>), (<.>))
 import System.IO                                  (FilePath)
 import Text.DescriptorProtos.DescriptorProto      (DescriptorProto)
 import                                            qualified Text.DescriptorProtos.DescriptorProto as D
@@ -28,7 +28,7 @@ parseProtoFile filename outputDir =
   do
     protoContents <- readFile filename
     case parseProto filename protoContents of
-      Left _ -> error $ "Failed to parse " ++ filename
+      Left parseError -> error $ "Failed to parse " ++ filename ++ show parseError
       Right fileDescriptor -> 
         do
           createDirectoryIfMissing True outputDir

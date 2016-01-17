@@ -1,0 +1,15 @@
+
+package world;
+
+import "ship.proto";
+
+message Snapshot {
+  repeated ship.Ship ships = 1;
+}
+
+message GameUpdate {
+  oneof update {
+    uint64 focusEntityId = 1;
+    Snapshot snapshot = 2;
+  }
+}
