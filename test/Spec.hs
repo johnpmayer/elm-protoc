@@ -6,10 +6,10 @@ import System.FilePath ((</>), takeExtension)
 import Lib (parseProtoFile)
 
 examplesDir :: FilePath
-examplesDir = "examples"
+examplesDir = "examples" </> "definitions"
 
 outputDir :: FilePath
-outputDir = "contracts"
+outputDir = "examples" </> "contracts"
 
 main :: IO ()
 main = do 
