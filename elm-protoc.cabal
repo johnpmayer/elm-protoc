@@ -19,6 +19,8 @@ library
   other-modules:        Templates
   build-depends:        base >= 4.7 && < 5
                       , bytestring
+                      , directory
+                      , filepath
                       , hprotoc
                       , neat-interpolation
                       , protocol-buffers

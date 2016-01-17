@@ -2,15 +2,17 @@ module Lib
     ( parseProtoFile
     ) where
 
-import Prelude hiding                             (readFile, putStr)
+import Prelude hiding                             (readFile, writeFile)
     
-import Data.ByteString.Lazy                       (ByteString, readFile, putStr)
+import Data.ByteString.Lazy                       (ByteString, readFile, writeFile)
 import Data.Foldable                              (toList)
 import Data.Maybe                                 (fromMaybe)
 import Data.Text                                  (Text)
 import                                            qualified Data.Text as T
 import Data.Text.Lazy                             (fromStrict, toStrict)
 import Data.Text.Lazy.Encoding                    (decodeUtf8, encodeUtf8)
+import System.Directory                           (createDirectoryIfMissing)
+import System.FilePath                            ((</>),(<.>))
 import System.IO                                  (FilePath)
 import Text.DescriptorProtos.DescriptorProto      (DescriptorProto)
 import                                            qualified Text.DescriptorProtos.DescriptorProto as D
@@ -21,17 +23,23 @@ import Text.ProtocolBuffers.ProtoCompile.Parser   (parseProto)
 
 import Templates
 
-parseProtoFile :: FilePath -> IO ()
-parseProtoFile filename = 
+parseProtoFile :: FilePath -> FilePath -> IO ()
+parseProtoFile filename outputDir = 
   do
     protoContents <- readFile filename
     case parseProto filename protoContents of
       Left _ -> error $ "Failed to parse " ++ filename
       Right fileDescriptor -> 
         do
-          putStrLn (show fileDescriptor)
-          putStr $ genNativeModule protoContents fileDescriptor
-          putStr $ genElmModule fileDescriptor
+          createDirectoryIfMissing True outputDir
+          let packagename = toText "Did not find a package name in the .proto file" . FD.package $ fileDescriptor
+          let modulename = T.toTitle packagename
+          let nativeDir = outputDir </> "Native"
+          createDirectoryIfMissing True nativeDir
+          let nativeFile = nativeDir </> T.unpack modulename <.> "js"
+          let elmFile = outputDir </> T.unpack modulename <.> "elm"
+          writeFile nativeFile $ genNativeModule protoContents fileDescriptor
+          writeFile elmFile $ genElmModule fileDescriptor
 
 toText :: String -> Maybe Utf8 -> Text
 toText errorMsg = toStrict . decodeUtf8 . utf8 . fromMaybe (error errorMsg) 
