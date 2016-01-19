@@ -44,19 +44,11 @@ Elm.Native.Addressbook = function(_elm) {
   var decodePerson = function(blob) {
     return Proto.Person.decode(blob);
   }
-  var marshalPerson = function(value_Person} {
-  }
-  var unmarshalPerson = function(message_Person} {
-  }
   var encodeAddressBook = function(message_AddressBook} {
     return message_AddressBook.toArrayBuffer();
   }
   var decodeAddressBook = function(blob) {
     return Proto.AddressBook.decode(blob);
-  }
-  var marshalAddressBook = function(value_AddressBook} {
-  }
-  var unmarshalAddressBook = function(message_AddressBook} {
   }
 
   return _elm.Native.Addressbook.values = {

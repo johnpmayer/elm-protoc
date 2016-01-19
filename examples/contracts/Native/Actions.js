@@ -43,19 +43,11 @@ Elm.Native.Actions = function(_elm) {
   var decodeUnit = function(blob) {
     return Proto.Unit.decode(blob);
   }
-  var marshalUnit = function(value_Unit} {
-  }
-  var unmarshalUnit = function(message_Unit} {
-  }
   var encodeActive = function(message_Active} {
     return message_Active.toArrayBuffer();
   }
   var decodeActive = function(blob) {
     return Proto.Active.decode(blob);
-  }
-  var marshalActive = function(value_Active} {
-  }
-  var unmarshalActive = function(message_Active} {
   }
   var encodeControls = function(message_Controls} {
     return message_Controls.toArrayBuffer();
@@ -63,29 +55,17 @@ Elm.Native.Actions = function(_elm) {
   var decodeControls = function(blob) {
     return Proto.Controls.decode(blob);
   }
-  var marshalControls = function(value_Controls} {
-  }
-  var unmarshalControls = function(message_Controls} {
-  }
   var encodeBuild = function(message_Build} {
     return message_Build.toArrayBuffer();
   }
   var decodeBuild = function(blob) {
     return Proto.Build.decode(blob);
   }
-  var marshalBuild = function(value_Build} {
-  }
-  var unmarshalBuild = function(message_Build} {
-  }
   var encodeAction = function(message_Action} {
     return message_Action.toArrayBuffer();
   }
   var decodeAction = function(blob) {
     return Proto.Action.decode(blob);
-  }
-  var marshalAction = function(value_Action} {
-  }
-  var unmarshalAction = function(message_Action} {
   }
 
   return _elm.Native.Actions.values = {

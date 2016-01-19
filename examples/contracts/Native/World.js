@@ -32,19 +32,11 @@ Elm.Native.World = function(_elm) {
   var decodeSnapshot = function(blob) {
     return Proto.Snapshot.decode(blob);
   }
-  var marshalSnapshot = function(value_Snapshot} {
-  }
-  var unmarshalSnapshot = function(message_Snapshot} {
-  }
   var encodeGameUpdate = function(message_GameUpdate} {
     return message_GameUpdate.toArrayBuffer();
   }
   var decodeGameUpdate = function(blob) {
     return Proto.GameUpdate.decode(blob);
-  }
-  var marshalGameUpdate = function(value_GameUpdate} {
-  }
-  var unmarshalGameUpdate = function(message_GameUpdate} {
   }
 
   return _elm.Native.World.values = {
