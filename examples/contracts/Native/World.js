@@ -26,23 +26,35 @@ Elm.Native.World = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("world");
 
+  var encodeSnapshot = function(message_Snapshot} {
+    return message_Snapshot.toArrayBuffer();
+  }
   var decodeSnapshot = function(blob) {
     return Proto.Snapshot.decode(blob);
+  }
+  var marshalSnapshot = function(value_Snapshot} {
+  }
+  var unmarshalSnapshot = function(message_Snapshot} {
+  }
+  var encodeGameUpdate = function(message_GameUpdate} {
+    return message_GameUpdate.toArrayBuffer();
   }
   var decodeGameUpdate = function(blob) {
     return Proto.GameUpdate.decode(blob);
   }
-  var encodeSnapshot = function(message_Snapshot} {
-    return message_Snapshot.toArrayBuffer();
+  var marshalGameUpdate = function(value_GameUpdate} {
   }
-  var encodeGameUpdate = function(message_GameUpdate} {
-    return message_GameUpdate.toArrayBuffer();
+  var unmarshalGameUpdate = function(message_GameUpdate} {
   }
 
   return _elm.Native.World.values = {
     encodeSnapshot: encodeSnapshot,
     decodeSnapshot: decodeSnapshot,
+    marshalSnapshot: marshalSnapshot,
+    unmarshalSnapshot: unmarshalSnapshot,
     encodeGameUpdate: encodeGameUpdate,
     decodeGameUpdate: decodeGameUpdate,
+    marshalGameUpdate: marshalGameUpdate,
+    unmarshalGameUpdate: unmarshalGameUpdate,
   }
 }

@@ -37,47 +37,77 @@ Elm.Native.Actions = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("actions");
 
+  var encodeUnit = function(message_Unit} {
+    return message_Unit.toArrayBuffer();
+  }
   var decodeUnit = function(blob) {
     return Proto.Unit.decode(blob);
   }
-  var decodeActive = function(blob) {
-    return Proto.Active.decode(blob);
+  var marshalUnit = function(value_Unit} {
   }
-  var decodeControls = function(blob) {
-    return Proto.Controls.decode(blob);
-  }
-  var decodeBuild = function(blob) {
-    return Proto.Build.decode(blob);
-  }
-  var decodeAction = function(blob) {
-    return Proto.Action.decode(blob);
-  }
-  var encodeUnit = function(message_Unit} {
-    return message_Unit.toArrayBuffer();
+  var unmarshalUnit = function(message_Unit} {
   }
   var encodeActive = function(message_Active} {
     return message_Active.toArrayBuffer();
   }
+  var decodeActive = function(blob) {
+    return Proto.Active.decode(blob);
+  }
+  var marshalActive = function(value_Active} {
+  }
+  var unmarshalActive = function(message_Active} {
+  }
   var encodeControls = function(message_Controls} {
     return message_Controls.toArrayBuffer();
+  }
+  var decodeControls = function(blob) {
+    return Proto.Controls.decode(blob);
+  }
+  var marshalControls = function(value_Controls} {
+  }
+  var unmarshalControls = function(message_Controls} {
   }
   var encodeBuild = function(message_Build} {
     return message_Build.toArrayBuffer();
   }
+  var decodeBuild = function(blob) {
+    return Proto.Build.decode(blob);
+  }
+  var marshalBuild = function(value_Build} {
+  }
+  var unmarshalBuild = function(message_Build} {
+  }
   var encodeAction = function(message_Action} {
     return message_Action.toArrayBuffer();
+  }
+  var decodeAction = function(blob) {
+    return Proto.Action.decode(blob);
+  }
+  var marshalAction = function(value_Action} {
+  }
+  var unmarshalAction = function(message_Action} {
   }
 
   return _elm.Native.Actions.values = {
     encodeUnit: encodeUnit,
     decodeUnit: decodeUnit,
+    marshalUnit: marshalUnit,
+    unmarshalUnit: unmarshalUnit,
     encodeActive: encodeActive,
     decodeActive: decodeActive,
+    marshalActive: marshalActive,
+    unmarshalActive: unmarshalActive,
     encodeControls: encodeControls,
     decodeControls: decodeControls,
+    marshalControls: marshalControls,
+    unmarshalControls: unmarshalControls,
     encodeBuild: encodeBuild,
     decodeBuild: decodeBuild,
+    marshalBuild: marshalBuild,
+    unmarshalBuild: unmarshalBuild,
     encodeAction: encodeAction,
     decodeAction: decodeAction,
+    marshalAction: marshalAction,
+    unmarshalAction: unmarshalAction,
   }
 }

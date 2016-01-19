@@ -48,6 +48,18 @@ nativeEncode typename =
     }
   |]
 
+nativeMarshal typename = 
+  [text|
+    var marshal${typename} = function(value_${typename}} {
+    }
+  |]
+  
+nativeUnmarshal typename = 
+  [text|
+    var unmarshal${typename} = function(message_${typename}} {
+    }
+  |]
+  
 elmModule modulename moduleExports contractTypeDefs modulevalues =
   [text|
     module ${modulename} 

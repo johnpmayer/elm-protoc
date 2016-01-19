@@ -66,12 +66,15 @@ genNativeModule protoContents fileDescriptor =
     decoders = T.concat $ nativeDecode <$> typenames
     
     values :: Text
-    values = T.concat [decoders, encoders]
+    values = T.concat $ do
+      typename <- typenames
+      valueBuilder <- [nativeEncode, nativeDecode, nativeMarshal, nativeUnmarshal]
+      return $ valueBuilder typename
     
     exports :: Text
     exports = T.concat $ do
       typename <- typenames
-      prefix <- ["encode", "decode"]
+      prefix <- ["encode", "decode", "marshal", "unmarshal"]
       return . nativeModuleExport $ T.concat [T.pack prefix, typename]
     
     protoSource :: Text
