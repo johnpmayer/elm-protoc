@@ -105,19 +105,17 @@ genElmModule fileDescriptor =
     valueExports :: [Text]
     valueExports = do
       typename <- typenames
-      prefix <- ["encode", "decode"]
+      prefix <- ["encode", "decode", "marshal", "unmarshal"]
       return  $ T.concat [T.pack prefix, typename]
     
     contractTypeDefs :: Text
     contractTypeDefs = T.concat $ elmContractTypeDef <$> typenames
-    
-    encoders :: Text
-    encoders = T.concat $ elmEncode modulename <$> typenames
-    
-    decoders :: Text
-    decoders = T.concat $ elmDecode modulename <$> typenames
-    
+        
     values :: Text
-    values = T.concat [decoders, encoders]
+    values = T.concat $ do
+      typename <- typenames
+      valueBuilder <- [elmEncode, elmDecode, elmMarshal, elmUnmarshal]
+      return $ valueBuilder modulename typename
+
   in encodeUtf8 . fromStrict $ elmModule modulename exports contractTypeDefs values
     

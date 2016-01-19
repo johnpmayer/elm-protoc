@@ -83,3 +83,20 @@ elmEncode modulename typename =
     encode${typename} = Native.${modulename}.encode${typename}
   |]
 
+elmUnmarshal modulename typename =
+  [text|
+    unmarshal${typename} : ${typename}Contract -> ${typename}
+    unmarshal${typename} = Native.${modulename}.unmarshal${typename}
+  |]
+
+elmUnmarshal modulename typename =
+  [text|
+    unmarshal${typename} : ${typename}Contract -> ${typename}
+    unmarshal${typename} = Native.${modulename}.unmarshal${typename}
+  |]
+
+elmMarshal modulename typename = 
+  [text|
+    marshal${typename} : ${typename} -> ${typename}Contract
+    marshal${typename} = Native.${modulename}.marshal${typename}
+  |]
