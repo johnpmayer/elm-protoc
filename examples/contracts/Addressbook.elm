@@ -1,5 +1,7 @@
 module Addressbook 
-  ( PersonContract
+  ( Person
+  , AddressBook
+  , PersonContract
   , AddressBookContract
   , encodePerson
   , decodePerson
@@ -11,6 +13,14 @@ module Addressbook
   , unmarshalAddressBook ) where
 
 import Native.Addressbook
+
+type alias Person = 
+  { name : String
+  , id : Int
+  , email : String
+  , phone : List (Phonenumber) }
+type alias AddressBook = 
+  { person : List (Person) }
 
 -- Opaque Type definitions
 type PersonContract = Opaque_PersonContract

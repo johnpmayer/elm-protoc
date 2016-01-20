@@ -1,5 +1,10 @@
 module Actions 
-  ( UnitContract
+  ( Unit
+  , Active
+  , Controls
+  , Build
+  , Action
+  , UnitContract
   , ActiveContract
   , ControlsContract
   , BuildContract
@@ -26,6 +31,17 @@ module Actions
   , unmarshalAction ) where
 
 import Native.Actions
+
+type alias Unit = 
+   }
+type alias Active = 
+  { groups : Int }
+type alias Controls = 
+   }
+type alias Build = 
+  { foo : Int }
+type alias Action = 
+   }
 
 -- Opaque Type definitions
 type UnitContract = Opaque_UnitContract

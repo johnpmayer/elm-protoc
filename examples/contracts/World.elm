@@ -1,5 +1,7 @@
 module World 
-  ( SnapshotContract
+  ( Snapshot
+  , GameUpdate
+  , SnapshotContract
   , GameUpdateContract
   , encodeSnapshot
   , decodeSnapshot
@@ -11,6 +13,11 @@ module World
   , unmarshalGameUpdate ) where
 
 import Native.World
+
+type alias Snapshot = 
+  { ships : List (Ship.Ship) }
+type alias GameUpdate = 
+   }
 
 -- Opaque Type definitions
 type SnapshotContract = Opaque_SnapshotContract

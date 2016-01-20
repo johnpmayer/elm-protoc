@@ -1,5 +1,20 @@
 module Ship 
-  ( VesselContract
+  ( Vessel
+  , FuelTank
+  , Engine
+  , Part
+  , Beam
+  , Root
+  , Attach
+  , StructureNode
+  , StructureLink
+  , StructureTree
+  , EndMarker
+  , StructureData
+  , Structure
+  , PhysicsState
+  , Ship
+  , VesselContract
   , FuelTankContract
   , EngineContract
   , PartContract
@@ -76,6 +91,51 @@ module Ship
   , unmarshalShip ) where
 
 import Native.Ship
+
+type alias Vessel = 
+  { width : Float
+  , length : Float }
+type alias FuelTank = 
+  { radius : Float
+  , length : Float }
+type alias Engine = 
+  { radius : Float
+  , length : Float
+  , group : Int }
+type alias Part = 
+   }
+type alias Beam = 
+  { length : Float }
+type alias Root = 
+   }
+type alias Attach = 
+  { location : Float
+  , rotation : Float }
+type alias StructureNode = 
+   }
+type alias StructureLink = 
+   }
+type alias StructureTree = 
+  { node : Structurenode
+  , link : Structurelink }
+type alias EndMarker = 
+   }
+type alias StructureData = 
+   }
+type alias Structure = 
+  { attachments : List (Structuredata) }
+type alias PhysicsState = 
+  { x : Float
+  , y : Float
+  , theta : Float
+  , vx : Float
+  , vy : Float
+  , omega : Float }
+type alias Ship = 
+  { entityId : Int
+  , structure : Structure
+  , physicsState : Physicsstate
+  , active : Actions.Active }
 
 -- Opaque Type definitions
 type VesselContract = Opaque_VesselContract

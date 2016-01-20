@@ -21,6 +21,7 @@ library
                       , bytestring
                       , directory
                       , filepath
+                      , groom
                       , hprotoc >= 2.2.0 && < 3
                       , neat-interpolation
                       , protocol-buffers >= 2.2.0 && < 3

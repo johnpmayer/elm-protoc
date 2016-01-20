@@ -31,7 +31,7 @@ nativeModule packagename modulename protoSource moduleValues moduleExports =
 
 nativeModuleExport valuename =
   [text|
-        ${valuename}: ${valuename},
+    ${valuename}: ${valuename},
   |]
 
 nativeDecode typename = 
@@ -60,12 +60,14 @@ nativeUnmarshal typename =
     }
   |]
   
-elmModule modulename moduleExports contractTypeDefs modulevalues =
+elmModule modulename moduleExports types contractTypeDefs modulevalues =
   [text|
     module ${modulename} 
       ${moduleExports} ) where
     
     import Native.${modulename}
+    
+    ${types}
     
     -- Opaque Type definitions
     ${contractTypeDefs}
@@ -75,7 +77,18 @@ elmModule modulename moduleExports contractTypeDefs modulevalues =
 
 elmExport prefix name = 
   [text|
-      ${prefix} ${name}
+    ${prefix} ${name}
+  |]
+
+elmRecordField prefix (name, typename) =
+  [text|
+    ${prefix} ${name} : ${typename}
+  |]
+  
+elmRecordTypeDef typename recordFields =
+  [text|
+    type alias ${typename} = 
+      ${recordFields} }
   |]
   
 elmContractTypeDef typename =
@@ -93,12 +106,6 @@ elmEncode modulename typename =
   [text|
     encode${typename} : ${typename}Contract -> Buffer
     encode${typename} = Native.${modulename}.encode${typename}
-  |]
-
-elmUnmarshal modulename typename =
-  [text|
-    unmarshal${typename} : ${typename}Contract -> ${typename}
-    unmarshal${typename} = Native.${modulename}.unmarshal${typename}
   |]
 
 elmUnmarshal modulename typename =
