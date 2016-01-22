@@ -32,7 +32,7 @@ Elm.Native.Actions = function(_elm) {
       Controls controls = 1;
       Build build = 2;
     }
-  }`;
+  }`;
   
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("actions");

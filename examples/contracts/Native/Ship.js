@@ -93,7 +93,7 @@ Elm.Native.Ship = function(_elm) {
     required Structure structure = 2;
     required PhysicsState physicsState = 3;
     required actions.Active active = 4;
-  }`;
+  }`;
   
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("ship");

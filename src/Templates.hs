@@ -80,17 +80,24 @@ elmExport prefix name =
     ${prefix} ${name}
   |]
 
-elmRecordField prefix (name, typename) =
+elmField prefix (name, typename) =
   [text|
     ${prefix} ${name} : ${typename}
   |]
   
-elmRecordTypeDef typename recordFields =
+elmRecordTypeDef typename oneofTypeDefs recordFields =
   [text|
+    ${oneofTypeDefs}
     type alias ${typename} = 
       ${recordFields} }
   |]
-  
+
+elmSumTypeDef typename sumFields =
+  [text|
+    type ${typename} =
+      ${sumFields}
+  |]
+
 elmContractTypeDef typename =
   [text|
     type ${typename}Contract = Opaque_${typename}Contract

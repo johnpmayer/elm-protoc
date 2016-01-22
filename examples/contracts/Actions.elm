@@ -32,16 +32,25 @@ module Actions
 
 import Native.Actions
 
+
 type alias Unit = 
    }
+
 type alias Active = 
   { groups : Int }
+type Controls_oneof_controls =
+  = brakes : Maybe (Unit)
+  | active : Maybe (Active)
 type alias Controls = 
-   }
+  { controls : Controls_oneof_controls }
+
 type alias Build = 
   { foo : Int }
+type Action_oneof_action =
+  = controls : Maybe (Controls)
+  | build : Maybe (Build)
 type alias Action = 
-   }
+  { action : Action_oneof_action }
 
 -- Opaque Type definitions
 type UnitContract = Opaque_UnitContract

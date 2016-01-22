@@ -21,7 +21,7 @@ Elm.Native.World = function(_elm) {
       uint64 focusEntityId = 1;
       Snapshot snapshot = 2;
     }
-  }`;
+  }`;
   
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("world");

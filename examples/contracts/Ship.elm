@@ -92,38 +92,61 @@ module Ship
 
 import Native.Ship
 
+
 type alias Vessel = 
   { width : Float
   , length : Float }
+
 type alias FuelTank = 
   { radius : Float
   , length : Float }
+
 type alias Engine = 
   { radius : Float
   , length : Float
   , group : Int }
+type Part_oneof_part =
+  = vessel : Maybe (Vessel)
+  | fuelTank : Maybe (Fueltank)
+  | engine : Maybe (Engine)
 type alias Part = 
-   }
+  { part : Part_oneof_part }
+
 type alias Beam = 
   { length : Float }
+
 type alias Root = 
    }
+
 type alias Attach = 
   { location : Float
   , rotation : Float }
+type StructureNode_oneof_node =
+  = beam : Maybe (Beam)
+  | part : Maybe (Part)
 type alias StructureNode = 
-   }
+  { node : StructureNode_oneof_node }
+type StructureLink_oneof_link =
+  = root : Maybe (Root)
+  | attach : Maybe (Attach)
 type alias StructureLink = 
-   }
+  { link : StructureLink_oneof_link }
+
 type alias StructureTree = 
   { node : Structurenode
   , link : Structurelink }
+
 type alias EndMarker = 
    }
+type StructureData_oneof_structure =
+  = marker : Maybe (Endmarker)
+  | tree : Maybe (Structuretree)
 type alias StructureData = 
-   }
+  { structure : StructureData_oneof_structure }
+
 type alias Structure = 
   { attachments : List (Structuredata) }
+
 type alias PhysicsState = 
   { x : Float
   , y : Float
@@ -131,6 +154,7 @@ type alias PhysicsState =
   , vx : Float
   , vy : Float
   , omega : Float }
+
 type alias Ship = 
   { entityId : Int
   , structure : Structure

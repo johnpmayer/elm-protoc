@@ -14,11 +14,13 @@ module Addressbook
 
 import Native.Addressbook
 
+
 type alias Person = 
   { name : String
   , id : Int
   , email : String
   , phone : List (Phonenumber) }
+
 type alias AddressBook = 
   { person : List (Person) }
 

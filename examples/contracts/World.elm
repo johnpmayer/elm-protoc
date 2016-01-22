@@ -14,10 +14,14 @@ module World
 
 import Native.World
 
+
 type alias Snapshot = 
   { ships : List (Ship.Ship) }
+type GameUpdate_oneof_update =
+  = focusEntityId : Int
+  | snapshot : Maybe (Snapshot)
 type alias GameUpdate = 
-   }
+  { update : GameUpdate_oneof_update }
 
 -- Opaque Type definitions
 type SnapshotContract = Opaque_SnapshotContract

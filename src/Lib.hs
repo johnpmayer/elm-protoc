@@ -4,11 +4,13 @@ module Lib
     ( parseProtoFile
     ) where
 
-import Prelude hiding                             (readFile, writeFile)
+import qualified  Prelude                                           as Prelude
+import            Prelude hiding                                    (readFile, writeFile)
     
 import            Data.ByteString.Lazy                              (ByteString, readFile, writeFile)
 import            Data.Foldable                                     (toList)
 import            Data.Int                                          (Int32)
+import            Data.List                                         (groupBy)
 import            Data.Maybe                                        (fromMaybe)
 import            Data.Text                                         (Text)
 import qualified  Data.Text                                         as T
@@ -25,11 +27,19 @@ import qualified  Text.DescriptorProtos.FieldDescriptorProto.Label  as FEL
 import qualified  Text.DescriptorProtos.FieldDescriptorProto.Type   as FET
 import            Text.DescriptorProtos.FileDescriptorProto         (FileDescriptorProto)
 import qualified  Text.DescriptorProtos.FileDescriptorProto         as F
+import            Text.DescriptorProtos.OneofDescriptorProto        (OneofDescriptorProto)
+import qualified  Text.DescriptorProtos.OneofDescriptorProto        as O
 import            Text.Groom                                        (groom)
 import            Text.ProtocolBuffers.Basic                        (Utf8, utf8)
 import            Text.ProtocolBuffers.ProtoCompile.Parser          (parseProto)
 
 import Templates
+
+groupByKey :: (Eq k) => (a -> k) -> [a] -> [[a]]
+groupByKey keyFun = 
+  let
+    compareFun rowA rowB = keyFun rowA == keyFun rowB
+  in groupBy compareFun
 
 parseProtoFile :: FilePath -> FilePath -> IO ()
 parseProtoFile filename outputDir = 
@@ -44,11 +54,15 @@ parseProtoFile filename outputDir =
           let packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
           let modulename = T.toTitle packagename
           let nativeDir = outputDir </> "Native"
+          let specDir = outputDir </> "spec"
           createDirectoryIfMissing True nativeDir
+          createDirectoryIfMissing True specDir
           let nativeFile = nativeDir </> T.unpack modulename <.> "js"
           let elmFile = outputDir </> T.unpack modulename <.> "elm"          
+          let specFile = specDir </> T.unpack packagename <.> "spec"
           writeFile nativeFile $ genNativeModule protoContents fileDescriptor
           writeFile elmFile $ genElmModule fileDescriptor
+          Prelude.writeFile specFile . groom $ fileDescriptor
 
 toText :: Utf8 -> Text
 toText = toStrict . decodeUtf8 . utf8
@@ -144,7 +158,17 @@ genElmField fieldDescriptor =
               Just (FEL.LABEL_REPEATED) -> T.concat ["List (", basetype, ")"]
     
     in (name, typename)
-  
+
+genOneofType :: Text -> OneofDescriptorProto -> [FieldDescriptorProto] -> Text
+genOneofType baseTypename oneofDescriptor fieldDescriptors =
+  let
+    oneofSubTypeName = toTextE "Didn't find a name for the oneof" . O.name $ oneofDescriptor
+    typename = T.concat [baseTypename, "_oneof_", oneofSubTypeName]
+    oneofFields = genElmField <$> fieldDescriptors
+    oneofPrefixes = T.pack "=" : repeat (T.pack "|")
+    fields = T.concat $ zipWith elmField oneofPrefixes oneofFields
+  in elmSumTypeDef typename fields
+
 genElmType :: DescriptorProto -> Text
 genElmType descriptor = 
   let
@@ -166,17 +190,36 @@ genElmType descriptor =
             Just index -> (index, fd) : xs
       in foldr accum [] fieldDescriptors
       
-    -- oneofs is a group-by the index & zip with the oneof decls here!
+    oneofDescriptors :: [OneofDescriptorProto]
+    oneofDescriptors = toList $ D.oneof_decl descriptor
+
+    oneofFieldNames :: [Text] 
+    oneofFieldNames = toTextE "Didn't find a name for the oneof" . O.name <$> oneofDescriptors
+
+    oneofRecordFields :: [(Text, Text)]
+    oneofRecordFields = do
+      name <- oneofFieldNames
+      let fieldTypename = T.concat [typename, "_oneof_", name]
+      return (name, fieldTypename)
+
+    oneofTypes :: [(OneofDescriptorProto, [FieldDescriptorProto])]
+    oneofTypes = 
+      let 
+        groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
+      in zip oneofDescriptors groupedOneofFields
     
+    oneofTypeDefs :: Text
+    oneofTypeDefs = T.concat $ map (uncurry $ genOneofType typename) oneofTypes
+
     elmFields :: [(Text, Text)]
-    elmFields = genElmField <$> standaloneFields -- TODO plus oneofs!
+    elmFields = (genElmField <$> standaloneFields) ++ oneofRecordFields
     
     recordPrefixes :: [Text]
     recordPrefixes = T.pack "{" : repeat (T.pack ",")
     
     fields :: Text
-    fields = T.concat $ zipWith elmRecordField recordPrefixes elmFields
-  in elmRecordTypeDef typename fields
+    fields = T.concat $ zipWith elmField recordPrefixes elmFields
+  in elmRecordTypeDef typename oneofTypeDefs fields
  
 genElmModule :: FileDescriptorProto -> ByteString
 genElmModule fileDescriptor = 
