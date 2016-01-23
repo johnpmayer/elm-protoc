@@ -1,9 +1,9 @@
-Elm.Native.Addressbook = Elm.Native.Addressbook || {}
-Elm.Native.Addressbook = function(_elm) {
+Elm.Native.AddressBook = Elm.Native.AddressBook || {}
+Elm.Native.AddressBook = function(_elm) {
   "use strict";
-  _elm.Native.Addressbook = _elm.Native.Addressbook || {}
-  if (_elm.Native.Addressbook.values) {
-    return _elm.Native.Addressbook.values
+  _elm.Native.AddressBook = _elm.Native.AddressBook || {}
+  if (_elm.Native.AddressBook.values) {
+    return _elm.Native.AddressBook.values
   }
   
   // .proto source
@@ -38,20 +38,20 @@ Elm.Native.Addressbook = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("addressBook");
 
-  var encodePerson = function(message_Person} {
+  var encodePerson = function(message_Person) {
     return message_Person.toArrayBuffer();
   }
   var decodePerson = function(blob) {
     return Proto.Person.decode(blob);
   }
-  var encodeAddressBook = function(message_AddressBook} {
+  var encodeAddressBook = function(message_AddressBook) {
     return message_AddressBook.toArrayBuffer();
   }
   var decodeAddressBook = function(blob) {
     return Proto.AddressBook.decode(blob);
   }
 
-  return _elm.Native.Addressbook.values = {
+  return _elm.Native.AddressBook.values = {
     encodePerson: encodePerson,
     decodePerson: decodePerson,
     marshalPerson: marshalPerson,

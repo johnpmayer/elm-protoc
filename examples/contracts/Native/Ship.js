@@ -98,91 +98,91 @@ Elm.Native.Ship = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("ship");
 
-  var encodeVessel = function(message_Vessel} {
+  var encodeVessel = function(message_Vessel) {
     return message_Vessel.toArrayBuffer();
   }
   var decodeVessel = function(blob) {
     return Proto.Vessel.decode(blob);
   }
-  var encodeFuelTank = function(message_FuelTank} {
+  var encodeFuelTank = function(message_FuelTank) {
     return message_FuelTank.toArrayBuffer();
   }
   var decodeFuelTank = function(blob) {
     return Proto.FuelTank.decode(blob);
   }
-  var encodeEngine = function(message_Engine} {
+  var encodeEngine = function(message_Engine) {
     return message_Engine.toArrayBuffer();
   }
   var decodeEngine = function(blob) {
     return Proto.Engine.decode(blob);
   }
-  var encodePart = function(message_Part} {
+  var encodePart = function(message_Part) {
     return message_Part.toArrayBuffer();
   }
   var decodePart = function(blob) {
     return Proto.Part.decode(blob);
   }
-  var encodeBeam = function(message_Beam} {
+  var encodeBeam = function(message_Beam) {
     return message_Beam.toArrayBuffer();
   }
   var decodeBeam = function(blob) {
     return Proto.Beam.decode(blob);
   }
-  var encodeRoot = function(message_Root} {
+  var encodeRoot = function(message_Root) {
     return message_Root.toArrayBuffer();
   }
   var decodeRoot = function(blob) {
     return Proto.Root.decode(blob);
   }
-  var encodeAttach = function(message_Attach} {
+  var encodeAttach = function(message_Attach) {
     return message_Attach.toArrayBuffer();
   }
   var decodeAttach = function(blob) {
     return Proto.Attach.decode(blob);
   }
-  var encodeStructureNode = function(message_StructureNode} {
+  var encodeStructureNode = function(message_StructureNode) {
     return message_StructureNode.toArrayBuffer();
   }
   var decodeStructureNode = function(blob) {
     return Proto.StructureNode.decode(blob);
   }
-  var encodeStructureLink = function(message_StructureLink} {
+  var encodeStructureLink = function(message_StructureLink) {
     return message_StructureLink.toArrayBuffer();
   }
   var decodeStructureLink = function(blob) {
     return Proto.StructureLink.decode(blob);
   }
-  var encodeStructureTree = function(message_StructureTree} {
+  var encodeStructureTree = function(message_StructureTree) {
     return message_StructureTree.toArrayBuffer();
   }
   var decodeStructureTree = function(blob) {
     return Proto.StructureTree.decode(blob);
   }
-  var encodeEndMarker = function(message_EndMarker} {
+  var encodeEndMarker = function(message_EndMarker) {
     return message_EndMarker.toArrayBuffer();
   }
   var decodeEndMarker = function(blob) {
     return Proto.EndMarker.decode(blob);
   }
-  var encodeStructureData = function(message_StructureData} {
+  var encodeStructureData = function(message_StructureData) {
     return message_StructureData.toArrayBuffer();
   }
   var decodeStructureData = function(blob) {
     return Proto.StructureData.decode(blob);
   }
-  var encodeStructure = function(message_Structure} {
+  var encodeStructure = function(message_Structure) {
     return message_Structure.toArrayBuffer();
   }
   var decodeStructure = function(blob) {
     return Proto.Structure.decode(blob);
   }
-  var encodePhysicsState = function(message_PhysicsState} {
+  var encodePhysicsState = function(message_PhysicsState) {
     return message_PhysicsState.toArrayBuffer();
   }
   var decodePhysicsState = function(blob) {
     return Proto.PhysicsState.decode(blob);
   }
-  var encodeShip = function(message_Ship} {
+  var encodeShip = function(message_Ship) {
     return message_Ship.toArrayBuffer();
   }
   var decodeShip = function(blob) {

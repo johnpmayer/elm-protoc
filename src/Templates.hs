@@ -43,7 +43,7 @@ nativeDecode typename =
 
 nativeEncode typename = 
   [text|
-    var encode${typename} = function(message_${typename}} {
+    var encode${typename} = function(message_${typename}) {
       return message_${typename}.toArrayBuffer();
     }
   |]
@@ -56,14 +56,18 @@ nativeMarshal typename =
   
 nativeUnmarshal typename = 
   [text|
-    var unmarshal${typename} = function(message_${typename}} {
+    var unmarshal${typename} = function(message_${typename}) {
     }
   |]
   
-elmModule modulename moduleExports types contractTypeDefs modulevalues =
+elmModule modulename moduleExports dependencyImports types contractTypeDefs modulevalues =
   [text|
     module ${modulename} 
       ${moduleExports} ) where
+
+    import Opaque exposing (Buffer)
+  
+    ${dependencyImports}
     
     import Native.${modulename}
     
@@ -75,12 +79,17 @@ elmModule modulename moduleExports types contractTypeDefs modulevalues =
     ${modulevalues}
   |]
 
+elmDependencyImport modulename =
+  [text|
+    import ${modulename}
+  |]
+
 elmExport prefix name = 
   [text|
     ${prefix} ${name}
   |]
 
-elmField prefix (name, typename) =
+elmRecordField prefix (name, typename) =
   [text|
     ${prefix} ${name} : ${typename}
   |]
@@ -92,9 +101,14 @@ elmRecordTypeDef typename oneofTypeDefs recordFields =
       ${recordFields} }
   |]
 
+elmSumField sumTypename prefix (name, typename) =
+  [text|
+    ${prefix} ${sumTypename}_${name} ${typename}
+  |]
+  
 elmSumTypeDef typename sumFields =
   [text|
-    type ${typename} =
+    type ${typename}
       ${sumFields}
   |]
 

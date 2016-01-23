@@ -1,4 +1,4 @@
-module Addressbook 
+module AddressBook 
   ( Person
   , AddressBook
   , PersonContract
@@ -12,14 +12,18 @@ module Addressbook
   , marshalAddressBook
   , unmarshalAddressBook ) where
 
-import Native.Addressbook
+import Opaque exposing (Buffer)
+
+
+
+import Native.AddressBook
 
 
 type alias Person = 
   { name : String
   , id : Int
   , email : String
-  , phone : List (Phonenumber) }
+  , phone : List (PhoneNumber) }
 
 type alias AddressBook = 
   { person : List (Person) }
@@ -29,18 +33,18 @@ type PersonContract = Opaque_PersonContract
 type AddressBookContract = Opaque_AddressBookContract
 
 encodePerson : PersonContract -> Buffer
-encodePerson = Native.Addressbook.encodePerson
+encodePerson = Native.AddressBook.encodePerson
 decodePerson : Buffer -> PersonContract
-decodePerson = Native.Addressbook.decodePerson
+decodePerson = Native.AddressBook.decodePerson
 marshalPerson : Person -> PersonContract
-marshalPerson = Native.Addressbook.marshalPerson
+marshalPerson = Native.AddressBook.marshalPerson
 unmarshalPerson : PersonContract -> Person
-unmarshalPerson = Native.Addressbook.unmarshalPerson
+unmarshalPerson = Native.AddressBook.unmarshalPerson
 encodeAddressBook : AddressBookContract -> Buffer
-encodeAddressBook = Native.Addressbook.encodeAddressBook
+encodeAddressBook = Native.AddressBook.encodeAddressBook
 decodeAddressBook : Buffer -> AddressBookContract
-decodeAddressBook = Native.Addressbook.decodeAddressBook
+decodeAddressBook = Native.AddressBook.decodeAddressBook
 marshalAddressBook : AddressBook -> AddressBookContract
-marshalAddressBook = Native.Addressbook.marshalAddressBook
+marshalAddressBook = Native.AddressBook.marshalAddressBook
 unmarshalAddressBook : AddressBookContract -> AddressBook
-unmarshalAddressBook = Native.Addressbook.unmarshalAddressBook
+unmarshalAddressBook = Native.AddressBook.unmarshalAddressBook

@@ -7,7 +7,9 @@ module Lib
 import qualified  Prelude                                           as Prelude
 import            Prelude hiding                                    (readFile, writeFile)
     
+import            Control.Monad                                     (forM)
 import            Data.ByteString.Lazy                              (ByteString, readFile, writeFile)
+import qualified  Data.Char                                         as C
 import            Data.Foldable                                     (toList)
 import            Data.Int                                          (Int32)
 import            Data.List                                         (groupBy)
@@ -17,7 +19,7 @@ import qualified  Data.Text                                         as T
 import            Data.Text.Lazy                                    (fromStrict, toStrict)
 import            Data.Text.Lazy.Encoding                           (decodeUtf8, encodeUtf8)
 import            System.Directory                                  (createDirectoryIfMissing)
-import            System.FilePath                                   ((</>), (<.>))
+import            System.FilePath                                   ((</>), (<.>), takeDirectory)
 import            System.IO                                         (FilePath)
 import            Text.DescriptorProtos.DescriptorProto             (DescriptorProto)
 import qualified  Text.DescriptorProtos.DescriptorProto             as D
@@ -35,34 +37,55 @@ import            Text.ProtocolBuffers.ProtoCompile.Parser          (parseProto)
 
 import Templates
 
+toTitlePreserving :: Text -> Text
+toTitlePreserving = 
+  let
+    walk (capitalize, rem) char = 
+      let
+        capitalizeNext = not $ C.isAlpha char
+        newRem = T.snoc rem (if capitalize then C.toUpper char else char)
+      in (capitalizeNext, newRem)
+  in snd . T.foldl walk (True, T.empty)
+
 groupByKey :: (Eq k) => (a -> k) -> [a] -> [[a]]
 groupByKey keyFun = 
   let
     compareFun rowA rowB = keyFun rowA == keyFun rowB
   in groupBy compareFun
 
+loadProtoFile :: FilePath -> IO (ByteString,FileDescriptorProto)
+loadProtoFile filename = 
+  do
+    protoContents <- readFile filename
+    return $ case parseProto filename protoContents of
+      Left parseError -> error $ "Failed to parse " ++ filename ++ show parseError
+      Right fileDescriptor -> (protoContents,fileDescriptor)
+
 parseProtoFile :: FilePath -> FilePath -> IO ()
 parseProtoFile filename outputDir = 
   do
-    protoContents <- readFile filename
-    case parseProto filename protoContents of
-      Left parseError -> error $ "Failed to parse " ++ filename ++ show parseError
-      Right fileDescriptor -> 
-        do
-          putStrLn . groom $ fileDescriptor
-          createDirectoryIfMissing True outputDir
-          let packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
-          let modulename = T.toTitle packagename
-          let nativeDir = outputDir </> "Native"
-          let specDir = outputDir </> "spec"
-          createDirectoryIfMissing True nativeDir
-          createDirectoryIfMissing True specDir
-          let nativeFile = nativeDir </> T.unpack modulename <.> "js"
-          let elmFile = outputDir </> T.unpack modulename <.> "elm"          
-          let specFile = specDir </> T.unpack packagename <.> "spec"
-          writeFile nativeFile $ genNativeModule protoContents fileDescriptor
-          writeFile elmFile $ genElmModule fileDescriptor
-          Prelude.writeFile specFile . groom $ fileDescriptor
+    (protoContents, fileDescriptor) <- loadProtoFile filename
+    let dependencyFilenames = T.unpack . toText <$> (toList $ F.dependency fileDescriptor)
+    let absoluteDependencyFilenames = ((takeDirectory filename)</>) <$> dependencyFilenames
+    dependencyModulenames <- forM absoluteDependencyFilenames $ \dependencyFilename ->
+      do
+        (_, dependencyFileDescriptor) <- loadProtoFile dependencyFilename
+        let dependencyPackagename = toTextE "Did not find a package name in the .proto file" . F.package $ dependencyFileDescriptor
+        let dependencyModulename = toTitlePreserving dependencyPackagename
+        return dependencyModulename
+    createDirectoryIfMissing True outputDir
+    let packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
+    let modulename = toTitlePreserving packagename
+    let nativeDir = outputDir </> "Native"
+    let specDir = outputDir </> "spec"
+    createDirectoryIfMissing True nativeDir
+    createDirectoryIfMissing True specDir
+    let nativeFile = nativeDir </> T.unpack modulename <.> "js"
+    let elmFile = outputDir </> T.unpack modulename <.> "elm"          
+    let specFile = specDir </> T.unpack packagename <.> "spec"
+    writeFile nativeFile $ genNativeModule protoContents fileDescriptor dependencyModulenames
+    writeFile elmFile $ genElmModule fileDescriptor dependencyModulenames
+    Prelude.writeFile specFile . groom $ fileDescriptor
 
 toText :: Utf8 -> Text
 toText = toStrict . decodeUtf8 . utf8
@@ -76,14 +99,14 @@ genNativeMarshal descriptor = undefined
 genNativeUnmarshal :: DescriptorProto -> Text
 genNativeUnmarshal descriptor = undefined
 
-genNativeModule :: ByteString -> FileDescriptorProto -> ByteString
-genNativeModule protoContents fileDescriptor = 
+genNativeModule :: ByteString -> FileDescriptorProto -> [Text] -> ByteString
+genNativeModule protoContents fileDescriptor dependencyModuleNames = 
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
     
     modulename :: Text
-    modulename = T.toTitle packagename
+    modulename = toTitlePreserving packagename
     
     descriptors :: [DescriptorProto]
     descriptors = toList $ F.message_type fileDescriptor
@@ -148,12 +171,15 @@ genElmField fieldDescriptor =
         (_, Just tn) -> 
           let 
             basetype = case toText <$> FE.extendee fieldDescriptor of
-              Nothing -> T.toTitle . toText $ tn
-              Just ee -> error "where?" -- T.concat [T.toTitle ee, "_", toText tn]
+              Nothing -> toTitlePreserving . toText $ tn
+              Just ee -> error "where?" -- T.concat [toTitlePreserving ee, "_", toText tn]
           in
             case FE.label fieldDescriptor of
               Nothing -> error "what's the default - required/optional/repeated"
-              Just (FEL.LABEL_OPTIONAL) -> T.concat ["Maybe (", basetype, ")"]
+              Just (FEL.LABEL_OPTIONAL) -> 
+                case FE.oneof_index fieldDescriptor of
+                  Nothing -> T.concat ["Maybe (", basetype, ")"]
+                  Just _ -> basetype
               Just (FEL.LABEL_REQUIRED) -> basetype
               Just (FEL.LABEL_REPEATED) -> T.concat ["List (", basetype, ")"]
     
@@ -166,7 +192,10 @@ genOneofType baseTypename oneofDescriptor fieldDescriptors =
     typename = T.concat [baseTypename, "_oneof_", oneofSubTypeName]
     oneofFields = genElmField <$> fieldDescriptors
     oneofPrefixes = T.pack "=" : repeat (T.pack "|")
-    fields = T.concat $ zipWith elmField oneofPrefixes oneofFields
+    fields = 
+      case oneofFields of
+        [] -> error "Sum type with no fields?"
+        _ -> T.concat $ zipWith (elmSumField typename) oneofPrefixes oneofFields
   in elmSumTypeDef typename fields
 
 genElmType :: DescriptorProto -> Text
@@ -218,17 +247,20 @@ genElmType descriptor =
     recordPrefixes = T.pack "{" : repeat (T.pack ",")
     
     fields :: Text
-    fields = T.concat $ zipWith elmField recordPrefixes elmFields
+    fields = 
+      case elmFields of
+        [] -> T.pack "{"
+        _ -> T.concat $ zipWith elmRecordField recordPrefixes elmFields
   in elmRecordTypeDef typename oneofTypeDefs fields
  
-genElmModule :: FileDescriptorProto -> ByteString
-genElmModule fileDescriptor = 
+genElmModule :: FileDescriptorProto -> [Text] -> ByteString
+genElmModule fileDescriptor dependencyModulenames = 
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
     
     modulename :: Text
-    modulename = T.toTitle packagename
+    modulename = toTitlePreserving packagename
     
     descriptors :: [DescriptorProto]
     descriptors = toList $ F.message_type fileDescriptor
@@ -263,5 +295,8 @@ genElmModule fileDescriptor =
       valueBuilder <- [elmEncode, elmDecode, elmMarshal, elmUnmarshal]
       return $ valueBuilder modulename typename
 
-  in encodeUtf8 . fromStrict $ elmModule modulename exports types contractTypes values
+    imports :: Text
+    imports = T.concat $ elmDependencyImport <$> dependencyModulenames
+  
+  in encodeUtf8 . fromStrict $ elmModule modulename exports imports types contractTypes values
     

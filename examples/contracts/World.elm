@@ -12,14 +12,18 @@ module World
   , marshalGameUpdate
   , unmarshalGameUpdate ) where
 
+import Opaque exposing (Buffer)
+
+import Ship
+
 import Native.World
 
 
 type alias Snapshot = 
   { ships : List (Ship.Ship) }
-type GameUpdate_oneof_update =
-  = focusEntityId : Int
-  | snapshot : Maybe (Snapshot)
+type GameUpdate_oneof_update
+  = GameUpdate_oneof_update_focusEntityId Int
+  | GameUpdate_oneof_update_snapshot Snapshot
 type alias GameUpdate = 
   { update : GameUpdate_oneof_update }
 

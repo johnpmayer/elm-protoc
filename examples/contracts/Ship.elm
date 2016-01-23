@@ -90,6 +90,10 @@ module Ship
   , marshalShip
   , unmarshalShip ) where
 
+import Opaque exposing (Buffer)
+
+import Actions
+
 import Native.Ship
 
 
@@ -105,10 +109,10 @@ type alias Engine =
   { radius : Float
   , length : Float
   , group : Int }
-type Part_oneof_part =
-  = vessel : Maybe (Vessel)
-  | fuelTank : Maybe (Fueltank)
-  | engine : Maybe (Engine)
+type Part_oneof_part
+  = Part_oneof_part_vessel Vessel
+  | Part_oneof_part_fuelTank FuelTank
+  | Part_oneof_part_engine Engine
 type alias Part = 
   { part : Part_oneof_part }
 
@@ -116,36 +120,36 @@ type alias Beam =
   { length : Float }
 
 type alias Root = 
-   }
+  { }
 
 type alias Attach = 
   { location : Float
   , rotation : Float }
-type StructureNode_oneof_node =
-  = beam : Maybe (Beam)
-  | part : Maybe (Part)
+type StructureNode_oneof_node
+  = StructureNode_oneof_node_beam Beam
+  | StructureNode_oneof_node_part Part
 type alias StructureNode = 
   { node : StructureNode_oneof_node }
-type StructureLink_oneof_link =
-  = root : Maybe (Root)
-  | attach : Maybe (Attach)
+type StructureLink_oneof_link
+  = StructureLink_oneof_link_root Root
+  | StructureLink_oneof_link_attach Attach
 type alias StructureLink = 
   { link : StructureLink_oneof_link }
 
 type alias StructureTree = 
-  { node : Structurenode
-  , link : Structurelink }
+  { node : StructureNode
+  , link : StructureLink }
 
 type alias EndMarker = 
-   }
-type StructureData_oneof_structure =
-  = marker : Maybe (Endmarker)
-  | tree : Maybe (Structuretree)
+  { }
+type StructureData_oneof_structure
+  = StructureData_oneof_structure_marker EndMarker
+  | StructureData_oneof_structure_tree StructureTree
 type alias StructureData = 
   { structure : StructureData_oneof_structure }
 
 type alias Structure = 
-  { attachments : List (Structuredata) }
+  { attachments : List (StructureData) }
 
 type alias PhysicsState = 
   { x : Float
@@ -158,7 +162,7 @@ type alias PhysicsState =
 type alias Ship = 
   { entityId : Int
   , structure : Structure
-  , physicsState : Physicsstate
+  , physicsState : PhysicsState
   , active : Actions.Active }
 
 -- Opaque Type definitions

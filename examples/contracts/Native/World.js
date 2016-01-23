@@ -26,13 +26,13 @@ Elm.Native.World = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("world");
 
-  var encodeSnapshot = function(message_Snapshot} {
+  var encodeSnapshot = function(message_Snapshot) {
     return message_Snapshot.toArrayBuffer();
   }
   var decodeSnapshot = function(blob) {
     return Proto.Snapshot.decode(blob);
   }
-  var encodeGameUpdate = function(message_GameUpdate} {
+  var encodeGameUpdate = function(message_GameUpdate) {
     return message_GameUpdate.toArrayBuffer();
   }
   var decodeGameUpdate = function(blob) {

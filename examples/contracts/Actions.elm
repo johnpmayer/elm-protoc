@@ -30,25 +30,29 @@ module Actions
   , marshalAction
   , unmarshalAction ) where
 
+import Opaque exposing (Buffer)
+
+
+
 import Native.Actions
 
 
 type alias Unit = 
-   }
+  { }
 
 type alias Active = 
   { groups : Int }
-type Controls_oneof_controls =
-  = brakes : Maybe (Unit)
-  | active : Maybe (Active)
+type Controls_oneof_controls
+  = Controls_oneof_controls_brakes Unit
+  | Controls_oneof_controls_active Active
 type alias Controls = 
   { controls : Controls_oneof_controls }
 
 type alias Build = 
   { foo : Int }
-type Action_oneof_action =
-  = controls : Maybe (Controls)
-  | build : Maybe (Build)
+type Action_oneof_action
+  = Action_oneof_action_controls Controls
+  | Action_oneof_action_build Build
 type alias Action = 
   { action : Action_oneof_action }
 

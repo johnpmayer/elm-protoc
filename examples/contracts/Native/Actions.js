@@ -37,31 +37,31 @@ Elm.Native.Actions = function(_elm) {
   var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
   var Proto = ProtoBuilder.build("actions");
 
-  var encodeUnit = function(message_Unit} {
+  var encodeUnit = function(message_Unit) {
     return message_Unit.toArrayBuffer();
   }
   var decodeUnit = function(blob) {
     return Proto.Unit.decode(blob);
   }
-  var encodeActive = function(message_Active} {
+  var encodeActive = function(message_Active) {
     return message_Active.toArrayBuffer();
   }
   var decodeActive = function(blob) {
     return Proto.Active.decode(blob);
   }
-  var encodeControls = function(message_Controls} {
+  var encodeControls = function(message_Controls) {
     return message_Controls.toArrayBuffer();
   }
   var decodeControls = function(blob) {
     return Proto.Controls.decode(blob);
   }
-  var encodeBuild = function(message_Build} {
+  var encodeBuild = function(message_Build) {
     return message_Build.toArrayBuffer();
   }
   var decodeBuild = function(blob) {
     return Proto.Build.decode(blob);
   }
-  var encodeAction = function(message_Action} {
+  var encodeAction = function(message_Action) {
     return message_Action.toArrayBuffer();
   }
   var decodeAction = function(blob) {
