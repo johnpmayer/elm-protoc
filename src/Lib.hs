@@ -19,7 +19,7 @@ import qualified  Data.Text                                         as T
 import            Data.Text.Lazy                                    (fromStrict, toStrict)
 import            Data.Text.Lazy.Encoding                           (decodeUtf8, encodeUtf8)
 import            System.Directory                                  (createDirectoryIfMissing)
-import            System.FilePath                                   ((</>), (<.>), takeDirectory)
+import            System.FilePath                                   ((</>), (<.>), takeDirectory, takeFileName)
 import            System.IO                                         (FilePath)
 import            Text.DescriptorProtos.DescriptorProto             (DescriptorProto)
 import qualified  Text.DescriptorProtos.DescriptorProto             as D
@@ -83,7 +83,7 @@ parseProtoFile filename outputDir =
     let nativeFile = nativeDir </> T.unpack modulename <.> "js"
     let elmFile = outputDir </> T.unpack modulename <.> "elm"          
     let specFile = specDir </> T.unpack packagename <.> "spec"
-    writeFile nativeFile $ genNativeModule protoContents fileDescriptor dependencyModulenames
+    writeFile nativeFile $ genNativeModule (takeFileName filename) protoContents fileDescriptor dependencyModulenames
     writeFile elmFile $ genElmModule fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
 
@@ -99,8 +99,8 @@ genNativeMarshal descriptor = undefined
 genNativeUnmarshal :: DescriptorProto -> Text
 genNativeUnmarshal descriptor = undefined
 
-genNativeModule :: ByteString -> FileDescriptorProto -> [Text] -> ByteString
-genNativeModule protoContents fileDescriptor dependencyModuleNames = 
+genNativeModule :: FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
+genNativeModule filename protoContents fileDescriptor dependencyModuleNames = 
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
@@ -145,7 +145,7 @@ genNativeModule protoContents fileDescriptor dependencyModuleNames =
     
     protoSource :: Text
     protoSource = toStrict . decodeUtf8 $ protoContents
-  in encodeUtf8 . fromStrict $ nativeModule packagename modulename protoSource values exports
+  in encodeUtf8 . fromStrict $ nativeModule (T.pack filename) packagename modulename protoSource values exports
 
 genPrimitiveTypeName :: FET.Type -> Text
 genPrimitiveTypeName t =

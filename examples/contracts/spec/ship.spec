@@ -1,4 +1,5 @@
-FileDescriptorProto{name = Just "examples/definitions/ship.proto",
+FileDescriptorProto{name =
+                      Just "examples\\definitions\\ship.proto",
                     package = Just "ship", dependency = fromList ["actions.proto"],
                     public_dependency = fromList [], weak_dependency = fromList [],
                     message_type =

@@ -1,5 +1,5 @@
 Elm.Native.Actions = Elm.Native.Actions || {}
-Elm.Native.Actions = function(_elm) {
+Elm.Native.Actions.make = function(_elm) {
   "use strict";
   _elm.Native.Actions = _elm.Native.Actions || {}
   if (_elm.Native.Actions.values) {
@@ -32,9 +32,9 @@ Elm.Native.Actions = function(_elm) {
       Controls controls = 1;
       Build build = 2;
     }
-  }`;
+  }`;
   
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "actions.proto");
   var Proto = ProtoBuilder.build("actions");
 
   var encodeUnit = function(message_Unit) {

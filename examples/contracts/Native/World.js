@@ -1,5 +1,5 @@
 Elm.Native.World = Elm.Native.World || {}
-Elm.Native.World = function(_elm) {
+Elm.Native.World.make = function(_elm) {
   "use strict";
   _elm.Native.World = _elm.Native.World || {}
   if (_elm.Native.World.values) {
@@ -21,9 +21,9 @@ Elm.Native.World = function(_elm) {
       uint64 focusEntityId = 1;
       Snapshot snapshot = 2;
     }
-  }`;
+  }`;
   
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "world.proto");
   var Proto = ProtoBuilder.build("world");
 
   var encodeSnapshot = function(message_Snapshot) {

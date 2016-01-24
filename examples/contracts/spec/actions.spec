@@ -1,5 +1,5 @@
 FileDescriptorProto{name =
-                      Just "examples/definitions/actions.proto",
+                      Just "examples\\definitions\\actions.proto",
                     package = Just "actions", dependency = fromList [],
                     public_dependency = fromList [], weak_dependency = fromList [],
                     message_type =

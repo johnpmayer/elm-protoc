@@ -5,10 +5,10 @@ module Templates where
 import Data.Text                (Text)
 import NeatInterpolation        (text)
 
-nativeModule packagename modulename protoSource moduleValues moduleExports =
+nativeModule filename packagename modulename protoSource moduleValues moduleExports =
   [text|
     Elm.Native.${modulename} = Elm.Native.${modulename} || {}
-    Elm.Native.${modulename} = function(_elm) {
+    Elm.Native.${modulename}.make = function(_elm) {
       "use strict";
       _elm.Native.${modulename} = _elm.Native.${modulename} || {}
       if (_elm.Native.${modulename}.values) {
@@ -18,7 +18,7 @@ nativeModule packagename modulename protoSource moduleValues moduleExports =
       // .proto source
       var protoSource = `${protoSource}`;
       
-      var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+      var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "${filename}");
       var Proto = ProtoBuilder.build("${packagename}");
 
       ${moduleValues}

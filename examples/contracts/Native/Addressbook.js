@@ -1,5 +1,5 @@
 Elm.Native.AddressBook = Elm.Native.AddressBook || {}
-Elm.Native.AddressBook = function(_elm) {
+Elm.Native.AddressBook.make = function(_elm) {
   "use strict";
   _elm.Native.AddressBook = _elm.Native.AddressBook || {}
   if (_elm.Native.AddressBook.values) {
@@ -35,7 +35,7 @@ Elm.Native.AddressBook = function(_elm) {
     repeated Person person = 1;
   }`;
   
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "addressbook.proto");
   var Proto = ProtoBuilder.build("addressBook");
 
   var encodePerson = function(message_Person) {

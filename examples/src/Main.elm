@@ -10,4 +10,12 @@ import Actions
 import Ship
 import World
 
-main = show "foo"
+exampleSnapshot = { ships = [] }
+
+main = 
+  let 
+    marshaledSnapshot = World.marshalSnapshot exampleSnapshot
+    wireSnapshot = World.encodeSnapshot marshaledSnapshot
+    decodedSnapshot = World.decodeSnapshot wireSnapshot
+    finalExampleSnapshot = World.unmarshalSnapshot decodedSnapshot
+  in show finalExampleSnapshot

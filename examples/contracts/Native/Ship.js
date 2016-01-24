@@ -1,5 +1,5 @@
 Elm.Native.Ship = Elm.Native.Ship || {}
-Elm.Native.Ship = function(_elm) {
+Elm.Native.Ship.make = function(_elm) {
   "use strict";
   _elm.Native.Ship = _elm.Native.Ship || {}
   if (_elm.Native.Ship.values) {
@@ -93,9 +93,9 @@ Elm.Native.Ship = function(_elm) {
     required Structure structure = 2;
     required PhysicsState physicsState = 3;
     required actions.Active active = 4;
-  }`;
+  }`;
   
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource);
+  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "ship.proto");
   var Proto = ProtoBuilder.build("ship");
 
   var encodeVessel = function(message_Vessel) {
