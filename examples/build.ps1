@@ -22,24 +22,13 @@ $closure_library_include_dir  = [io.path]::Combine($closure_library_dir, "closur
 $closure_library_third_party_include_dir  = [io.path]::Combine($closure_library_dir, "third_party", "closure")
 
 $closurebuilder_script = Join-Path $closure_library_bin_dir "closurebuilder.py"
-#$depswriter_script = Join-Path $closure_library_bin_dir "depswriter.py"
+$depswriter_script = Join-Path $closure_library_bin_dir "depswriter.py"
 
 <#
 $closure_compiler_zip = Join-Path $temp_dir "closure-compiler.zip"
 $closure_compiler_dir = ".\closure-compiler"
 $closure_compiler_jar = Join-Path $closure_compiler_dir "compiler.jar"
 #>
-
-# Utilities
-
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-function Unzip-Archive
-{
-    param([string]$zipfile, [string]$outpath)
-
-    #[System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $outpath)
-    Expand-Archive $zipfile $outpath
-}
 
 # "Entry point"
 
@@ -55,7 +44,7 @@ if (& $protoc_exe --version) {
 else {
     Write-Host "Downloading protocol buffers compiler from github"
     Invoke-WebRequest "https://github.com/google/protobuf/releases/download/v3.0.0-beta-2/protoc-${PROTOBUF_VERSION}-win32.zip" -OutFile $protoc_zip
-    Unzip-Archive $protoc_zip $protoc_dir
+    Expand-Archive $protoc_zip $protoc_dir
 }
 
 if (Test-Path $protobuf_js_messagefile) {
@@ -64,7 +53,7 @@ if (Test-Path $protobuf_js_messagefile) {
 else {
     Write-Host "Downloading protocol buffers js runtime"
     Invoke-WebRequest "https://github.com/google/protobuf/releases/download/v3.0.0-beta-2/protobuf-js-${PROTOBUF_JS_VERSION}.zip" -OutFile $protobuf_js_zip
-    Unzip-Archive $protobuf_js_zip $protobuf_js_dir
+    Expand-Archive $protobuf_js_zip $protobuf_js_dir
 }
 
 if (Test-Path $closure_library_include_dir) {
@@ -103,7 +92,8 @@ Copy-Item $protobuf_js_messagefile $protobuf_js_include_dir
 # Get namsepaces from all generated js files
 $protoc_js_files = Get-ChildItem $protoc_js_out_dir | %{ Join-Path $protoc_js_out_dir $_ }
 $protoc_js_include_flags = Get-ChildItem $protoc_js_out_dir | %{ Join-Path $protoc_js_out_dir $_ } | %{ "--input=$_" }
-& python $closurebuilder_script --output_file=out.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir $protoc_js_include_flags
+& python $depswriter_script --output_file=deps.js --root=$protoc_js_out_dir
+& python $closurebuilder_script --help --output_file=out.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir $protoc_js_include_flags
 # & java -jar $closure_compiler_jar --js_output_file=out.js "${protoc_js_out_dir}\**.js" "${protobuf_js_include_dir}\**.js" "${closure_library_include_dir}\**.js" "${closure_library_third_party_include_dir}\**.js" '!**_test.js'
 
 Write-Host "Compiling Main"
