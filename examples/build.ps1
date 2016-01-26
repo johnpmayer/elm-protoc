@@ -1,4 +1,8 @@
 
+function Get-RelativeChildItem ($Path) {
+    Get-ChildItem -Path $Path -Recurse | %{ $_ | Resolve-Path -Relative }
+}
+
 # Dependencies
 
 $PROTOBUF_VERSION = "3.0.0-beta-2"
@@ -9,14 +13,16 @@ $PROTOBUF_JS_VERSION = "3.0.0-alpha-5"
 $temp_dir = ".\temp"
 
 $protoc_zip = Join-Path $temp_dir "protoc.zip"
-$protoc_dir = ".\protoc"
+$protoc_dir = Join-Path $temp_dir "protoc"
 $protoc_exe = Join-Path $protoc_dir "protoc.exe"
 
 $protobuf_js_zip = Join-Path $temp_dir "protobuf-js.zip"
-$protobuf_js_dir = ".\protobuf-js"
-$protobuf_js_messagefile = [io.path]::Combine($protobuf_js_dir, "protobuf-${PROTOBUF_JS_VERSION}", "js", "message.js")
+$protobuf_js_dir = Join-Path $temp_dir "protobuf-js"
+$protobuf_js_src_include_dir = [io.path]::Combine($protobuf_js_dir, "protobuf-${PROTOBUF_JS_VERSION}", "js")
+$protobuf_js_messagefile = Join-Path $protobuf_js_src_include_dir "message.js"
+$protobuf_js_binaryfiles = Get-RelativeChildItem (Join-Path $protobuf_js_src_include_dir "binary") | ?{ $_ -like "*.js" -and $_ -notlike "*_test.js" } 
 
-$closure_library_dir = ".\closure-library"
+$closure_library_dir = Join-Path $temp_dir "closure-library"
 $closure_library_bin_dir = [io.path]::Combine($closure_library_dir, "closure\bin\build")
 $closure_library_include_dir  = [io.path]::Combine($closure_library_dir, "closure")
 $closure_library_third_party_include_dir  = [io.path]::Combine($closure_library_dir, "third_party", "closure")
@@ -38,7 +44,7 @@ Write-Host "Getting Libraries"
 
 if (-not (Test-Path $temp_dir)) { New-Item -ItemType Directory -Path $temp_dir }
 
-if (& $protoc_exe --version) {
+if (Test-Path $protoc_exe) {
     Write-Host "Protocol buffers compiler binary is already available"
 }
 else {
@@ -82,18 +88,22 @@ if (-not (Test-Path $protoc_js_out_dir)) { New-Item -ItemType Directory -Path $p
 $proto_files = Get-ChildItem $definition_directory | %{ Join-Path $definition_directory $_ }
 
 Write-Host "Generating javascript modules from protobuf definitions"
-& protoc $proto_files --proto_path $definition_directory --js_out $protoc_js_out_dir
+& $protoc_exe $proto_files --proto_path $definition_directory --js_out=$protoc_js_out_dir,binary=1
 
 Write-Host "Combining generated javascript"
 # Copy "Message" into an isolated directory
-$protobuf_js_include_dir = Join-Path $temp_dir "protobuf-js"
+$protobuf_js_include_dir = Join-Path $temp_dir "protobuf-js-include"
 if (-not (Test-Path $protobuf_js_include_dir)) { New-Item -ItemType Directory -Path $protobuf_js_include_dir }
 Copy-Item $protobuf_js_messagefile $protobuf_js_include_dir
+$protobuf_js_binaryfiles | %{ Copy-Item $_ $protobuf_js_include_dir }
 # Get namsepaces from all generated js files
-$protoc_js_files = Get-ChildItem $protoc_js_out_dir | %{ Join-Path $protoc_js_out_dir $_ }
-$protoc_js_include_flags = Get-ChildItem $protoc_js_out_dir | %{ Join-Path $protoc_js_out_dir $_ } | %{ "--input=$_" }
-& python $depswriter_script --output_file=deps.js --root=$protoc_js_out_dir
-& python $closurebuilder_script --help --output_file=out.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir $protoc_js_include_flags
+$protoc_js_files = Get-RelativeChildItem $protoc_js_out_dir 
+$protoc_js_include_flags = (Get-RelativeChildItem $protoc_js_out_dir) + (Get-RelativeChildItem $protobuf_js_include_dir) | %{ "--input=$_" }
+$deps_file = Join-Path $protoc_js_out_dir "deps.js"
+write-host $depswriter_script
+& python $depswriter_script --output_file=$deps_file --root=$protoc_js_out_dir #--root=$protobuf_js_include_dir
+write-host $closurebuilder_script
+& python $closurebuilder_script --output_file=out.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="proto.world.GameUpdate"
 # & java -jar $closure_compiler_jar --js_output_file=out.js "${protoc_js_out_dir}\**.js" "${protobuf_js_include_dir}\**.js" "${closure_library_include_dir}\**.js" "${closure_library_third_party_include_dir}\**.js" '!**_test.js'
 
 Write-Host "Compiling Main"
