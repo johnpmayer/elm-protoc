@@ -9,6 +9,8 @@ Elm.Native.AddressBook.make = function(_elm) {
   // .proto source
   var protoSource = `// See README.txt for information and build instructions.
   
+  syntax = "proto2";
+  
   package addressBook;
   
   message Person {

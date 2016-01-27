@@ -94,6 +94,7 @@ import Opaque exposing (Buffer)
 
 import Actions
 
+import Native.Proto
 import Native.Ship
 
 

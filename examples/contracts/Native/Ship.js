@@ -8,6 +8,8 @@ Elm.Native.Ship.make = function(_elm) {
   
   // .proto source
   var protoSource = `
+  syntax = "proto2";
+  
   package ship;
   
   import "actions.proto";

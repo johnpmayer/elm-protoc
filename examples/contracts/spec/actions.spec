@@ -126,5 +126,5 @@ FileDescriptorProto{name =
                                          unknown'field = UnknownField (fromList [])}],
                     enum_type = fromList [], service = fromList [],
                     extension = fromList [], options = Nothing,
-                    source_code_info = Nothing, syntax = Nothing,
+                    source_code_info = Nothing, syntax = Just "proto2",
                     unknown'field = UnknownField (fromList [])}

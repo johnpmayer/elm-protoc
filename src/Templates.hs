@@ -69,6 +69,7 @@ elmModule modulename moduleExports dependencyImports types contractTypeDefs modu
   
     ${dependencyImports}
     
+    import Native.Proto
     import Native.${modulename}
     
     ${types}

@@ -16,6 +16,7 @@ import Opaque exposing (Buffer)
 
 import Ship
 
+import Native.Proto
 import Native.World
 
 

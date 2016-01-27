@@ -8,6 +8,8 @@ Elm.Native.World.make = function(_elm) {
   
   // .proto source
   var protoSource = `
+  syntax = "proto2";
+  
   package world;
   
   import "ship.proto";

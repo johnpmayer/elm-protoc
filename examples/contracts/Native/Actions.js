@@ -8,6 +8,8 @@ Elm.Native.Actions.make = function(_elm) {
   
   // .proto source
   var protoSource = `
+  syntax = "proto2";
+  
   package actions;
   
   message Unit {};

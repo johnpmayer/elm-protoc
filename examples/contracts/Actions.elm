@@ -34,6 +34,7 @@ import Opaque exposing (Buffer)
 
 
 
+import Native.Proto
 import Native.Actions
 
 
