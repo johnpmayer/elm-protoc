@@ -9,6 +9,8 @@ PROTOBUF_JS_VERSION="3.0.0-alpha-5"
 
 # Other settings
 
+PREFIX="ElmProto"
+
 temp_dir="./temp"
 
 protoc_zip="$temp_dir/protoc.zip"
@@ -77,7 +79,7 @@ fi
 proto_files=$(find $definition_directory | grep .proto$)
 
 echo "Generating javascript modules from protobuf definitions"
-$protoc_exe $proto_files --proto_path $definition_directory --js_out=binary:$protoc_js_out_dir
+$protoc_exe $proto_files --proto_path $definition_directory --js_out=binary,namespace_prefix=$PREFIX:$protoc_js_out_dir
 
 echo "Combining generated javascript"
 # Copy "message and binary/*" into an isolated directory
@@ -100,7 +102,7 @@ python $depswriter_script --output_file=$deps_file --root=$protoc_js_out_dir #--
 
 # Stitch JavaScript
 echo $closurebuilder_script
-python $closurebuilder_script --output_file=contracts/Native/Proto.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="proto.world.GameUpdate"
+python $closurebuilder_script --output_file=contracts/Native/Proto.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="$PREFIX.GameUpdate"
 
 # Compile Elm - NOTE DO NOT INCLUDE IN elm-protoc EVENTUAL 
 echo "Compiling Main"

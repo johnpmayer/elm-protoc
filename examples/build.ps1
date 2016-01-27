@@ -10,6 +10,8 @@ $PROTOBUF_JS_VERSION = "3.0.0-alpha-5"
 
 # Other settings
 
+$PREFIX = "ElmProto"
+
 $temp_dir = ".\temp"
 
 $protoc_zip = Join-Path $temp_dir "protoc.zip"
@@ -88,7 +90,7 @@ if (-not (Test-Path $protoc_js_out_dir)) { New-Item -ItemType Directory -Path $p
 $proto_files = Get-ChildItem $definition_directory | %{ Join-Path $definition_directory $_ }
 
 Write-Host "Generating javascript modules from protobuf definitions"
-& $protoc_exe $proto_files --proto_path $definition_directory --js_out=binary:$protoc_js_out_dir
+& $protoc_exe $proto_files --proto_path $definition_directory --js_out=binary,namespace_prefix=$PREFIX:$protoc_js_out_dir
 
 Write-Host "Combining generated javascript"
 # Copy "Message" into an isolated directory
@@ -103,7 +105,7 @@ $deps_file = Join-Path $protoc_js_out_dir "deps.js"
 write-host $depswriter_script
 & python $depswriter_script --output_file=$deps_file --root=$protoc_js_out_dir #--root=$protobuf_js_include_dir
 write-host $closurebuilder_script
-& python $closurebuilder_script --output_file=contracts\Native\Proto.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="proto.world.GameUpdate"
+& python $closurebuilder_script --output_file=contracts\Native\Proto.js --output_mode=script --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="$PREFIX.GameUpdate"
 # & java -jar $closure_compiler_jar --js_output_file=out.js "${protoc_js_out_dir}\**.js" "${protobuf_js_include_dir}\**.js" "${closure_library_include_dir}\**.js" "${closure_library_third_party_include_dir}\**.js" '!**_test.js'
 
 Write-Host "Compiling Main"
