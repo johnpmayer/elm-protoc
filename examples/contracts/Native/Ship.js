@@ -1,104 +1,12 @@
-Elm.Native.Ship = Elm.Native.Ship || {}
+Elm.Native.Ship = Elm.Native.Ship || {};
 Elm.Native.Ship.make = function(_elm) {
   "use strict";
-  _elm.Native.Ship = _elm.Native.Ship || {}
+  _elm.Native.Ship = _elm.Native.Ship || {};
   if (_elm.Native.Ship.values) {
-    return _elm.Native.Ship.values
+    return _elm.Native.Ship.values;
   }
-  
-  // .proto source
-  var protoSource = `
-  syntax = "proto2";
-  
-  package ship;
-  
-  import "actions.proto";
-  
-  message Vessel {
-    required double width = 1;
-    required double length = 2;
-  };
-  
-  message FuelTank {
-    required double radius = 1;
-    required double length = 2;
-  };
-  
-  message Engine {
-    required double radius = 1;
-    required double length = 2;
-    required int32 group = 3;
-  };
-  
-  message Part {
-    oneof part {
-      Vessel vessel = 1;
-      FuelTank fuelTank = 2;
-      Engine engine = 3;
-    }
-  }
-  
-  message Beam {
-    required double length = 1;
-  }
-  
-  message Root {};
-  
-  message Attach {
-    required double location = 1;
-    required double rotation = 2;
-  }
-  
-  message StructureNode {
-    oneof node {
-      Beam beam = 1;
-      Part part = 2;
-    }
-  }
-  
-  message StructureLink {
-    oneof link {
-      Root root = 1;
-      Attach attach = 2;
-    }
-  }
-  
-  message StructureTree {
-    required StructureNode node = 1;
-    required StructureLink link = 2;
-  }
-  
-  message EndMarker {};
-  
-  message StructureData {
-    oneof structure {
-      EndMarker marker = 1;
-      StructureTree tree = 2; 
-    }
-  }
-  
-  message Structure { 
-    repeated StructureData attachments = 1;
-  }
-  
-  message PhysicsState {
-    required double x = 1;
-    required double y = 2;
-    required double theta = 3;
-    required double vx = 4;
-    required double vy = 5;
-    required double omega = 6;
-  }
-  
-  message Ship {
-    required uint64 entityId = 1;
-    required Structure structure = 2;
-    required PhysicsState physicsState = 3;
-    required actions.Active active = 4;
-  }`;
-  
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "ship.proto");
-  var Proto = ProtoBuilder.build("ship");
+
+  var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodeVessel = function(message_Vessel) {
     return message_Vessel.toArrayBuffer();

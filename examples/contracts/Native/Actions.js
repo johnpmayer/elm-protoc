@@ -1,43 +1,12 @@
-Elm.Native.Actions = Elm.Native.Actions || {}
+Elm.Native.Actions = Elm.Native.Actions || {};
 Elm.Native.Actions.make = function(_elm) {
   "use strict";
-  _elm.Native.Actions = _elm.Native.Actions || {}
+  _elm.Native.Actions = _elm.Native.Actions || {};
   if (_elm.Native.Actions.values) {
-    return _elm.Native.Actions.values
+    return _elm.Native.Actions.values;
   }
-  
-  // .proto source
-  var protoSource = `
-  syntax = "proto2";
-  
-  package actions;
-  
-  message Unit {};
-  
-  message Active {
-    repeated int32 groups = 1;
-  }
-  
-  message Controls {
-    oneof controls {
-      Unit brakes = 1;
-      Active active = 2;
-    }
-  }
-  
-  message Build {
-    required int32 foo = 1;
-  }
-  
-  message Action {
-    oneof action {
-      Controls controls = 1;
-      Build build = 2;
-    }
-  }`;
-  
-  var ProtoBuilder = dcodeIO.ProtoBuf.loadProto(protoSource, "actions.proto");
-  var Proto = ProtoBuilder.build("actions");
+
+  var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodeUnit = function(message_Unit) {
     return message_Unit.toArrayBuffer();

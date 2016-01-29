@@ -61,8 +61,8 @@ loadProtoFile filename =
       Left parseError -> error $ "Failed to parse " ++ filename ++ show parseError
       Right fileDescriptor -> (protoContents,fileDescriptor)
 
-parseProtoFile :: FilePath -> FilePath -> IO ()
-parseProtoFile filename outputDir = 
+parseProtoFile :: String -> FilePath -> FilePath -> IO ()
+parseProtoFile protoModulename filename outputDir = 
   do
     (protoContents, fileDescriptor) <- loadProtoFile filename
     let dependencyFilenames = T.unpack . toText <$> (toList $ F.dependency fileDescriptor)
@@ -83,7 +83,7 @@ parseProtoFile filename outputDir =
     let nativeFile = nativeDir </> T.unpack modulename <.> "js"
     let elmFile = outputDir </> T.unpack modulename <.> "elm"          
     let specFile = specDir </> T.unpack packagename <.> "spec"
-    writeFile nativeFile $ genNativeModule (takeFileName filename) protoContents fileDescriptor dependencyModulenames
+    writeFile nativeFile $ genNativeModule (T.pack protoModulename) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
     writeFile elmFile $ genElmModule fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
 
@@ -99,8 +99,8 @@ genNativeMarshal descriptor = undefined
 genNativeUnmarshal :: DescriptorProto -> Text
 genNativeUnmarshal descriptor = undefined
 
-genNativeModule :: FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
-genNativeModule filename protoContents fileDescriptor dependencyModuleNames = 
+genNativeModule :: Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
+genNativeModule protoModulename filename protoContents fileDescriptor dependencyModuleNames = 
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
@@ -145,7 +145,7 @@ genNativeModule filename protoContents fileDescriptor dependencyModuleNames =
     
     protoSource :: Text
     protoSource = toStrict . decodeUtf8 $ protoContents
-  in encodeUtf8 . fromStrict $ nativeModule (T.pack filename) packagename modulename protoSource values exports
+  in encodeUtf8 . fromStrict $ nativeModule protoModulename (T.pack filename) packagename modulename protoSource values exports
 
 genPrimitiveTypeName :: FET.Type -> Text
 genPrimitiveTypeName t =
