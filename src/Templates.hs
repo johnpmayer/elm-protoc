@@ -30,29 +30,31 @@ nativeModuleExport valuename =
     ${valuename}: ${valuename},
   |]
 
-nativeDecode typename = 
+nativeDecode protoModulename typename = 
   [text|
     var decode${typename} = function(blob) {
-      return Proto.${typename}.decode(blob);
+      return ${protoModulename}.${typename}.deserializeBinary(blob);
     }
   |]
 
-nativeEncode typename = 
+nativeEncode protoModulename typename = 
   [text|
     var encode${typename} = function(message_${typename}) {
-      return message_${typename}.toArrayBuffer();
+      return message_${typename}.serializeBinary()
     }
   |]
 
 nativeMarshal typename = 
   [text|
     var marshal${typename} = function(value_${typename}} {
+      throw "Not implemented";
     }
   |]
   
 nativeUnmarshal typename = 
   [text|
     var unmarshal${typename} = function(message_${typename}) {
+      throw "Not implemented";
     }
   |]
   
