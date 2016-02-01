@@ -9,16 +9,16 @@ Elm.Native.World.make = function(_elm) {
   var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodeSnapshot = function(message_Snapshot) {
-    return message_Snapshot.toArrayBuffer();
+    return message_Snapshot.serializeBinary()
   }
   var decodeSnapshot = function(blob) {
-    return Proto.Snapshot.decode(blob);
+    return ElmProto.Snapshot.deserializeBinary(blob);
   }
   var encodeGameUpdate = function(message_GameUpdate) {
-    return message_GameUpdate.toArrayBuffer();
+    return message_GameUpdate.serializeBinary()
   }
   var decodeGameUpdate = function(blob) {
-    return Proto.GameUpdate.decode(blob);
+    return ElmProto.GameUpdate.deserializeBinary(blob);
   }
 
   return _elm.Native.World.values = {

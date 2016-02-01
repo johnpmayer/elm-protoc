@@ -9,34 +9,34 @@ Elm.Native.Actions.make = function(_elm) {
   var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodeUnit = function(message_Unit) {
-    return message_Unit.toArrayBuffer();
+    return message_Unit.serializeBinary()
   }
   var decodeUnit = function(blob) {
-    return Proto.Unit.decode(blob);
+    return ElmProto.Unit.deserializeBinary(blob);
   }
   var encodeActive = function(message_Active) {
-    return message_Active.toArrayBuffer();
+    return message_Active.serializeBinary()
   }
   var decodeActive = function(blob) {
-    return Proto.Active.decode(blob);
+    return ElmProto.Active.deserializeBinary(blob);
   }
   var encodeControls = function(message_Controls) {
-    return message_Controls.toArrayBuffer();
+    return message_Controls.serializeBinary()
   }
   var decodeControls = function(blob) {
-    return Proto.Controls.decode(blob);
+    return ElmProto.Controls.deserializeBinary(blob);
   }
   var encodeBuild = function(message_Build) {
-    return message_Build.toArrayBuffer();
+    return message_Build.serializeBinary()
   }
   var decodeBuild = function(blob) {
-    return Proto.Build.decode(blob);
+    return ElmProto.Build.deserializeBinary(blob);
   }
   var encodeAction = function(message_Action) {
-    return message_Action.toArrayBuffer();
+    return message_Action.serializeBinary()
   }
   var decodeAction = function(blob) {
-    return Proto.Action.decode(blob);
+    return ElmProto.Action.deserializeBinary(blob);
   }
 
   return _elm.Native.Actions.values = {

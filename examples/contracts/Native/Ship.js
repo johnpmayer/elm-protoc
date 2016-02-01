@@ -9,94 +9,94 @@ Elm.Native.Ship.make = function(_elm) {
   var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodeVessel = function(message_Vessel) {
-    return message_Vessel.toArrayBuffer();
+    return message_Vessel.serializeBinary()
   }
   var decodeVessel = function(blob) {
-    return Proto.Vessel.decode(blob);
+    return ElmProto.Vessel.deserializeBinary(blob);
   }
   var encodeFuelTank = function(message_FuelTank) {
-    return message_FuelTank.toArrayBuffer();
+    return message_FuelTank.serializeBinary()
   }
   var decodeFuelTank = function(blob) {
-    return Proto.FuelTank.decode(blob);
+    return ElmProto.FuelTank.deserializeBinary(blob);
   }
   var encodeEngine = function(message_Engine) {
-    return message_Engine.toArrayBuffer();
+    return message_Engine.serializeBinary()
   }
   var decodeEngine = function(blob) {
-    return Proto.Engine.decode(blob);
+    return ElmProto.Engine.deserializeBinary(blob);
   }
   var encodePart = function(message_Part) {
-    return message_Part.toArrayBuffer();
+    return message_Part.serializeBinary()
   }
   var decodePart = function(blob) {
-    return Proto.Part.decode(blob);
+    return ElmProto.Part.deserializeBinary(blob);
   }
   var encodeBeam = function(message_Beam) {
-    return message_Beam.toArrayBuffer();
+    return message_Beam.serializeBinary()
   }
   var decodeBeam = function(blob) {
-    return Proto.Beam.decode(blob);
+    return ElmProto.Beam.deserializeBinary(blob);
   }
   var encodeRoot = function(message_Root) {
-    return message_Root.toArrayBuffer();
+    return message_Root.serializeBinary()
   }
   var decodeRoot = function(blob) {
-    return Proto.Root.decode(blob);
+    return ElmProto.Root.deserializeBinary(blob);
   }
   var encodeAttach = function(message_Attach) {
-    return message_Attach.toArrayBuffer();
+    return message_Attach.serializeBinary()
   }
   var decodeAttach = function(blob) {
-    return Proto.Attach.decode(blob);
+    return ElmProto.Attach.deserializeBinary(blob);
   }
   var encodeStructureNode = function(message_StructureNode) {
-    return message_StructureNode.toArrayBuffer();
+    return message_StructureNode.serializeBinary()
   }
   var decodeStructureNode = function(blob) {
-    return Proto.StructureNode.decode(blob);
+    return ElmProto.StructureNode.deserializeBinary(blob);
   }
   var encodeStructureLink = function(message_StructureLink) {
-    return message_StructureLink.toArrayBuffer();
+    return message_StructureLink.serializeBinary()
   }
   var decodeStructureLink = function(blob) {
-    return Proto.StructureLink.decode(blob);
+    return ElmProto.StructureLink.deserializeBinary(blob);
   }
   var encodeStructureTree = function(message_StructureTree) {
-    return message_StructureTree.toArrayBuffer();
+    return message_StructureTree.serializeBinary()
   }
   var decodeStructureTree = function(blob) {
-    return Proto.StructureTree.decode(blob);
+    return ElmProto.StructureTree.deserializeBinary(blob);
   }
   var encodeEndMarker = function(message_EndMarker) {
-    return message_EndMarker.toArrayBuffer();
+    return message_EndMarker.serializeBinary()
   }
   var decodeEndMarker = function(blob) {
-    return Proto.EndMarker.decode(blob);
+    return ElmProto.EndMarker.deserializeBinary(blob);
   }
   var encodeStructureData = function(message_StructureData) {
-    return message_StructureData.toArrayBuffer();
+    return message_StructureData.serializeBinary()
   }
   var decodeStructureData = function(blob) {
-    return Proto.StructureData.decode(blob);
+    return ElmProto.StructureData.deserializeBinary(blob);
   }
   var encodeStructure = function(message_Structure) {
-    return message_Structure.toArrayBuffer();
+    return message_Structure.serializeBinary()
   }
   var decodeStructure = function(blob) {
-    return Proto.Structure.decode(blob);
+    return ElmProto.Structure.deserializeBinary(blob);
   }
   var encodePhysicsState = function(message_PhysicsState) {
-    return message_PhysicsState.toArrayBuffer();
+    return message_PhysicsState.serializeBinary()
   }
   var decodePhysicsState = function(blob) {
-    return Proto.PhysicsState.decode(blob);
+    return ElmProto.PhysicsState.deserializeBinary(blob);
   }
   var encodeShip = function(message_Ship) {
-    return message_Ship.toArrayBuffer();
+    return message_Ship.serializeBinary()
   }
   var decodeShip = function(blob) {
-    return Proto.Ship.decode(blob);
+    return ElmProto.Ship.deserializeBinary(blob);
   }
 
   return _elm.Native.Ship.values = {

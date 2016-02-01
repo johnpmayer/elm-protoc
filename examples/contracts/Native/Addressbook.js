@@ -9,16 +9,16 @@ Elm.Native.AddressBook.make = function(_elm) {
   var Proto = Elm.Native.ElmProto.make(_elm);
 
   var encodePerson = function(message_Person) {
-    return message_Person.toArrayBuffer();
+    return message_Person.serializeBinary()
   }
   var decodePerson = function(blob) {
-    return Proto.Person.decode(blob);
+    return ElmProto.Person.deserializeBinary(blob);
   }
   var encodeAddressBook = function(message_AddressBook) {
-    return message_AddressBook.toArrayBuffer();
+    return message_AddressBook.serializeBinary()
   }
   var decodeAddressBook = function(blob) {
-    return Proto.AddressBook.decode(blob);
+    return ElmProto.AddressBook.deserializeBinary(blob);
   }
 
   return _elm.Native.AddressBook.values = {
