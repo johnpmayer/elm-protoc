@@ -8,7 +8,7 @@
         "src",
         "contracts"
     ],
-    "exposed-modules": [],
+    "exposed-modules": ["Main"],
     "native-modules": true,
     "dependencies": {
         "elm-lang/core": "3.0.0 <= v < 4.0.0",

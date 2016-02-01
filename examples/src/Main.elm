@@ -1,7 +1,15 @@
 
-module Main where
+module Main (main) where
 
-import Graphics.Element exposing (show)
+{-|
+
+Examples 
+
+@docs main
+
+-}
+
+import Graphics.Element exposing (Element, show)
 
 -- import Addressbook
 -- Does not support NESTED TYPES
@@ -12,6 +20,8 @@ import World
 
 exampleSnapshot = { ships = [] }
 
+{-| Run the program -}
+main : Element
 main = 
   let 
     marshaledSnapshot = World.marshalSnapshot exampleSnapshot
