@@ -17,8 +17,8 @@ tempDir = unsafePerformIO getCurrentDirectory </> "elm-stuff" </> "elm-protoc-te
 protoc_version :: String
 protoc_version = "3.0.0-beta-2"
 
-protoc_zip :: FilePath
-protoc_zip = tempDir </> "protoc.zip"
+--protoc_zip :: FilePath
+--protoc_zip = tempDir </> "protoc.zip"
 
 protoc_dir :: FilePath
 protoc_dir = tempDir </> "protoc"
@@ -28,10 +28,10 @@ protoc_exe = protoc_dir </> "protoc.exe"
 
 protoc_url :: String
 #ifdef mingw32_HOST_OS
-protoc_url = "https://github.com/google/protobuf/releases/download/v3.0.0-beta-2/protoc-${PROTOBUF_VERSION}-win32.zip"
+protoc_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_version ++ "/protoc-" ++ protoc_version ++ "-win32.zip"
 #endif
 #ifdef darwin_HOST_OS
-protoc_url = "https://github.com/google/protobuf/releases/download/v3.0.0-beta-2/protoc-${PROTOBUF_VERSION}-osx-x86_64.zip"
+protoc_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_version ++ "/protoc-" ++ protoc_version ++ "-osx-x86_64.zip"
 #endif
 
 -- Protocol Buffers JS Includes
@@ -39,8 +39,8 @@ protoc_url = "https://github.com/google/protobuf/releases/download/v3.0.0-beta-2
 protobuf_js_version :: String
 protobuf_js_version = "3.0.0-alpha-5"
 
-protobuf_js_zip :: FilePath
-protobuf_js_zip = tempDir </> "protobuf_js.zip"
+--protobuf_js_zip :: FilePath
+--protobuf_js_zip = tempDir </> "protobuf_js.zip"
 
 protobuf_js_dir :: FilePath
 protobuf_js_dir = tempDir </> "protobuf_js"
