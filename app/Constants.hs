@@ -49,6 +49,9 @@ protobuf_js_include_dir = protobuf_js_dir </> ("protobuf-" ++ protobuf_js_versio
 -- protobuf_js_messagefile
 -- protobuf_js_binaryfiles
 
+closure_library_repository :: String
+closure_library_repository = "https://github.com/google/closure-library"
+
 closure_library_dir :: FilePath
 closure_library_dir = tempDir </> "closure_library"
 
