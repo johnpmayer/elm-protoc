@@ -6,11 +6,10 @@ import Control.Monad.Except
 import Arguments
 --import Constants
 --import Lib
-import ShellUtils
+import ShellUtils (ensureSetup)
 
 main :: IO ()
 main = do
   args <- arguments
-  ensureTempDirExists
-  runExceptT ensureProtocAvailable >>= putStrLn . show
-  putStrLn $ "TODO\n" ++ show args
+  runExceptT ensureSetup >>= putStrLn . show
+  putStrLn $ "GO: " ++ show args
