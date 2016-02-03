@@ -27,7 +27,9 @@ ensureSetup =
 -- Common
 
 ensureTempDirExists :: IO ()
-ensureTempDirExists = createDirectoryIfMissing True tempDir
+ensureTempDirExists = do
+    createDirectoryIfMissing True temp_dir
+    createDirectoryIfMissing True temp_js_out_dir
 
 whenM :: Monad m => m Bool -> m () -> m ()
 whenM test action = test >>= \b -> when b action

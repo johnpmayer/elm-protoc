@@ -9,8 +9,11 @@ import System.Directory
 -- Shared temporary directory
 -- TODO consider changing this to something like elm-stuff/elm-protoc-temp
 
-tempDir :: FilePath
-tempDir = unsafePerformIO getCurrentDirectory </> "elm-stuff" </> "elm-protoc-temp"
+temp_dir :: FilePath
+temp_dir = unsafePerformIO getCurrentDirectory </> "elm-stuff" </> "elm-protoc-temp"
+
+temp_js_out_dir :: FilePath
+temp_js_out_dir = temp_dir </> "js_out"
 
 -- Protocol Buffers Compiler
 
@@ -26,7 +29,7 @@ protoc_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_
 #endif
 
 protoc_dir :: FilePath
-protoc_dir = tempDir </> "protoc"
+protoc_dir = temp_dir </> "protoc"
 
 protoc_exe :: FilePath
 protoc_exe = protoc_dir </> "protoc.exe"
@@ -40,7 +43,7 @@ protobuf_js_url :: String
 protobuf_js_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_version ++ "/protobuf-js-" ++ protobuf_js_version ++ ".zip"
 
 protobuf_js_dir :: FilePath
-protobuf_js_dir = tempDir </> "protobuf_js"
+protobuf_js_dir = temp_dir </> "protobuf_js"
 
 protobuf_js_include_dir :: FilePath
 protobuf_js_include_dir = protobuf_js_dir </> ("protobuf-" ++ protobuf_js_version) </> "js"
@@ -53,7 +56,7 @@ closure_library_repository :: String
 closure_library_repository = "https://github.com/google/closure-library"
 
 closure_library_dir :: FilePath
-closure_library_dir = tempDir </> "closure_library"
+closure_library_dir = temp_dir </> "closure_library"
 
 closure_library_bin_dir :: FilePath
 closure_library_bin_dir = closure_library_dir </> "closure" </> "bin" </> "build"
