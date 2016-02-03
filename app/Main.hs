@@ -1,15 +1,14 @@
 module Main where
 
 import Control.Monad.Except
---import Shelly
 
 import Arguments
---import Constants
 --import Lib
-import ShellUtils (ensureSetup)
+import ShellUtils (ensureSetup, runProtoc)
 
 main :: IO ()
 main = do
-  args <- arguments
+  ElmProtocArguments inputDir outputDir prefix <- arguments
   runExceptT ensureSetup >>= putStrLn . show
-  putStrLn $ "GO: " ++ show args
+  putStrLn $ "Generating JavaScript with protoc"
+  runProtoc inputDir outputDir prefix

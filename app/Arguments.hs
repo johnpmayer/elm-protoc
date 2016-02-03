@@ -4,9 +4,9 @@ module Arguments where
 import Options.Applicative
 
 data ElmProtocArguments = ElmProtocArguments
-  { inputDir :: FilePath
-  , outputDir :: FilePath
-  , modulePrefix :: String } deriving (Show)
+  { _inputDir :: FilePath
+  , _outputDir :: FilePath
+  , _prefix :: String } deriving (Show)
 
 argumentsP :: Parser ElmProtocArguments
 argumentsP = ElmProtocArguments
