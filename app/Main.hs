@@ -3,13 +3,13 @@ module Main where
 import Control.Monad.Except
 
 import Arguments
-import Constants
---import Lib
-import ShellUtils (ensureSetup, runProtoc)
+import ShellUtils (ensureSetup, runProtoc, runDepsWriter, runClosureBuilder)
 
 main :: IO ()
 main = do
-  ElmProtocArguments inputDir _ prefix <- arguments
+  ElmProtocArguments inputDir outputDir prefix <- arguments
   runExceptT ensureSetup >>= putStrLn . show
   putStrLn $ "Generating JavaScript with protoc"
-  runProtoc inputDir temp_js_out_dir prefix
+  runProtoc inputDir prefix
+  runDepsWriter
+  runClosureBuilder outputDir prefix

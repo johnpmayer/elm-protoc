@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module ShellUtils (ensureSetup, runProtoc) where
+module ShellUtils (ensureSetup, runProtoc, runDepsWriter, runClosureBuilder) where
 
 import Control.Monad
 import Control.Monad.Except (MonadError)
@@ -10,6 +10,7 @@ import qualified Data.Text as T
 import Shelly (Sh, echo, findWhen, fromText, hasExt, run_, shelly, toTextIgnore)
 import qualified Shelly as Sh
 import System.Directory
+import System.FilePath
 import System.Process
 
 import Constants
@@ -74,13 +75,43 @@ ensureClosureAvailable =
 getProtoFiles :: Sh.FilePath -> Sh [Sh.FilePath]
 getProtoFiles = findWhen (return . hasExt "proto")
 
-runProtoc :: FilePath -> FilePath -> String -> IO ()
-runProtoc sourceDirectory destinationDirectory prefix = shelly $ do
+runProtoc :: FilePath -> String -> IO ()
+runProtoc sourceDirectory prefix = shelly $ do
   inputfiles <- (<$>) toTextIgnore <$> getProtoFiles (convertToShFilePath sourceDirectory)
   forM_ inputfiles (echo . ("  with input file: " `T.append`))
   let protoc_filepath = convertToShFilePath protoc_exe
   run_ protoc_filepath $ inputfiles ++
     [ "--proto_path"
     , T.pack sourceDirectory
-    , T.concat ["--js_out=binary,namespace_prefix=", T.pack prefix, ":", T.pack destinationDirectory ]
+    , T.concat ["--js_out=binary,namespace_prefix=", T.pack prefix, ":", T.pack temp_js_out_dir ]
+    ]
+
+runDepsWriter :: IO ()
+runDepsWriter =
+  callCommand $ unwords
+    [ "python"
+    , depswriter_script
+    , "--output_file=" ++ js_deps_file
+    , "--root=" ++ temp_js_out_dir
+    ]
+
+copyProtobufJsIncludes :: IO [FilePath]
+copyProtobufJsIncludes = do
+  undefined
+
+runClosureBuilder :: FilePath -> String -> IO ()
+runClosureBuilder outputDir prefix = do
+  let nativeOutputDirectory = outputDir </> "Native" </> prefix
+  createDirectoryIfMissing True nativeOutputDirectory
+  callCommand $ unwords
+    [ "python"
+    , closurebuilder_script
+    , "--output_file=" ++ (nativeOutputDirectory </> native_js_out_filename)
+    , "--output_mode=script"
+    , "--root=" ++ temp_js_out_dir
+    , "--root=" ++ protobuf_js_include_dir
+    , "--root=" ++ closure_library_include_dir
+    , "--root=" ++ closure_library_third_party_include_dir
+    , "--input=" ++ js_deps_file
+    , "--namespace=\"" ++ prefix ++ "\""
     ]

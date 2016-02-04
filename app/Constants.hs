@@ -3,8 +3,8 @@
 module Constants where
 
 import System.IO.Unsafe
-import System.FilePath
 import System.Directory
+import System.FilePath
 
 -- Shared temporary directory
 -- TODO consider changing this to something like elm-stuff/elm-protoc-temp
@@ -14,6 +14,12 @@ temp_dir = unsafePerformIO getCurrentDirectory </> "elm-stuff" </> "elm-protoc-t
 
 temp_js_out_dir :: FilePath
 temp_js_out_dir = temp_dir </> "js_out"
+
+js_deps_file :: FilePath
+js_deps_file = temp_js_out_dir </> "deps.js"
+
+native_js_out_filename :: FilePath
+native_js_out_filename = "Proto.js"
 
 -- Protocol Buffers Compiler
 
@@ -47,6 +53,9 @@ protobuf_js_dir = temp_dir </> "protobuf_js"
 
 protobuf_js_include_dir :: FilePath
 protobuf_js_include_dir = protobuf_js_dir </> ("protobuf-" ++ protobuf_js_version) </> "js"
+
+protobuf_js_binary_include_dir :: FilePath
+protobuf_js_binary_include_dir = protobuf_js_include_dir </> "binary"
 
 -- do we need the message file explicitly?
 -- protobuf_js_messagefile
