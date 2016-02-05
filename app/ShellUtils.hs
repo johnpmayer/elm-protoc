@@ -48,6 +48,10 @@ ensureProtocAvailable =
   whenM (liftIO isProtocMissing) $ do
     liftIO $ putStrLn "Downloading Protocol Buffers Compiler binary from GitHub (release archive)"
     Http.send protoc_url (Zip.extract protoc_dir)
+    -- TODO break this down into a separate check? stronger idempotency!
+    liftIO $ do
+      perms <- getPermissions protoc_exe
+      setPermissions protoc_exe (setOwnerExecutable True perms)
 
 isProtoJSMising :: IO Bool
 isProtoJSMising = not <$> doesDirectoryExist protobuf_js_include_dir

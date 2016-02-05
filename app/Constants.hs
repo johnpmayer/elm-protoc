@@ -29,16 +29,21 @@ protoc_version = "3.0.0-beta-2"
 protoc_url :: String
 #ifdef mingw32_HOST_OS
 protoc_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_version ++ "/protoc-" ++ protoc_version ++ "-win32.zip"
-#endif
-#ifdef darwin_HOST_OS
+#elif darwin_HOST_OS
 protoc_url = "https://github.com/google/protobuf/releases/download/v" ++ protoc_version ++ "/protoc-" ++ protoc_version ++ "-osx-x86_64.zip"
 #endif
 
 protoc_dir :: FilePath
 protoc_dir = temp_dir </> "protoc"
 
+-- TODO use System.Directory.exeExtension instead?
 protoc_exe :: FilePath
+#ifdef mingw32_HOST_OS
 protoc_exe = protoc_dir </> "protoc.exe"
+#elif darwin_HOST_OS
+protoc_exe = protoc_dir </> "protoc"
+#endif
+
 
 -- Protocol Buffers JS Includes
 
