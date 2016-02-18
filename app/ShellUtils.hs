@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module ShellUtils (ensureSetup, runProtoc, runDepsWriter, runClosureBuilder) where
+module ShellUtils where
 
 import Control.Monad
 import Control.Monad.Except (MonadError)
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.List.Utils (endswith)
 import qualified Data.Text as T
 import Shelly (Sh, echo, findWhen, fromText, hasExt, run_, shelly, toTextIgnore)
 import qualified Shelly as Sh
@@ -31,6 +32,7 @@ ensureTempDirExists :: IO ()
 ensureTempDirExists = do
     createDirectoryIfMissing True temp_dir
     createDirectoryIfMissing True temp_js_out_dir
+    createDirectoryIfMissing True temp_protobuf_js_include_dir
 
 whenM :: Monad m => m Bool -> m () -> m ()
 whenM test action = test >>= \b -> when b action
@@ -87,7 +89,7 @@ runProtoc sourceDirectory prefix = shelly $ do
   run_ protoc_filepath $ inputfiles ++
     [ "--proto_path"
     , T.pack sourceDirectory
-    , T.concat ["--js_out=binary,namespace_prefix=", T.pack prefix, ":", T.pack temp_js_out_dir ]
+    , T.concat ["--js_out=binary,library=", T.pack prefix,",namespace_prefix=", T.pack prefix, ":", T.pack temp_js_out_dir ]
     ]
 
 runDepsWriter :: IO ()
@@ -99,9 +101,24 @@ runDepsWriter =
     , "--root=" ++ temp_js_out_dir
     ]
 
-copyProtobufJsIncludes :: IO [FilePath]
+nonTestJsFile :: FilePath -> Bool
+nonTestJsFile filename = 
+  (takeExtension filename == ".js") &&
+  not (endswith "_test" $ takeBaseName filename)
+
+copyFileInDirectory :: FilePath -> FilePath -> FilePath -> IO ()
+copyFileInDirectory sourceDir destDir filename =
+  let
+    sourcePath = sourceDir </> filename
+    destPath = destDir </> filename
+  in copyFile sourcePath destPath
+
+copyProtobufJsIncludes :: IO ()
 copyProtobufJsIncludes = do
-  undefined
+  let messageFilename = "message.js"
+  copyFileInDirectory protobuf_js_include_dir temp_protobuf_js_include_dir messageFilename
+  binaryFilenames <- filter nonTestJsFile <$> getDirectoryContents protobuf_js_binary_include_dir
+  forM_ binaryFilenames $ copyFileInDirectory protobuf_js_binary_include_dir temp_protobuf_js_include_dir
 
 runClosureBuilder :: FilePath -> String -> IO ()
 runClosureBuilder outputDir prefix = do
@@ -113,7 +130,7 @@ runClosureBuilder outputDir prefix = do
     , "--output_file=" ++ (nativeOutputDirectory </> native_js_out_filename)
     , "--output_mode=script"
     , "--root=" ++ temp_js_out_dir
-    , "--root=" ++ protobuf_js_include_dir
+    , "--root=" ++ temp_protobuf_js_include_dir
     , "--root=" ++ closure_library_include_dir
     , "--root=" ++ closure_library_third_party_include_dir
     , "--input=" ++ js_deps_file

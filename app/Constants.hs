@@ -15,6 +15,9 @@ temp_dir = unsafePerformIO getCurrentDirectory </> "elm-stuff" </> "elm-protoc-t
 temp_js_out_dir :: FilePath
 temp_js_out_dir = temp_dir </> "js_out"
 
+temp_protobuf_js_include_dir :: FilePath
+temp_protobuf_js_include_dir = temp_dir </> "protobuf_js_include"
+
 js_deps_file :: FilePath
 js_deps_file = temp_js_out_dir </> "deps.js"
 

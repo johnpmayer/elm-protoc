@@ -94,7 +94,7 @@ proto_files=$(find $definition_directory | grep .proto$)
 # PROTOC
 
 echo "Generating javascript modules from protobuf definitions"
-$protoc_exe $proto_files --proto_path $definition_directory --js_out=binary,namespace_prefix=$PREFIX:$protoc_js_out_dir
+$protoc_exe $proto_files --proto_path $definition_directory --js_out="binary,library=$PREFIX:$protoc_js_out_dir"
 
 # CLOSURE
 
@@ -122,7 +122,7 @@ proto_modulename="Native.$PREFIX"
 
 # Stitch JavaScript
 echo $closurebuilder_script
-python $closurebuilder_script --output_file="$output_file" --output_mode=compiled --compiler_jar="$closure_compiler_jar" --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="$PREFIX.GameUpdate" 
+python $closurebuilder_script --output_file="$output_file" --output_mode=compiled --compiler_jar="$closure_compiler_jar" --root=$protoc_js_out_dir --root=$protobuf_js_include_dir --root=$closure_library_include_dir --root=$closure_library_third_party_include_dir --input=$deps_file --namespace="proto.world.GameUpdate" 
 
 # Wrapper
 cat >>$output_file <<EOF

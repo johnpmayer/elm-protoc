@@ -46,6 +46,7 @@ executable elm-protoc
                       , http-client
                       , http-client-tls
                       , http-types
+                      , MissingH
                       , mtl
                       , network
                       , optparse-applicative
