@@ -31,6 +31,8 @@ ensureSetup =
 ensureTempDirExists :: IO ()
 ensureTempDirExists = do
     createDirectoryIfMissing True temp_dir
+    whenM (doesDirectoryExist temp_js_out_dir) $ 
+      removeDirectoryRecursive temp_js_out_dir
     createDirectoryIfMissing True temp_js_out_dir
     createDirectoryIfMissing True temp_protobuf_js_include_dir
 
@@ -102,7 +104,7 @@ runDepsWriter =
     ]
 
 nonTestJsFile :: FilePath -> Bool
-nonTestJsFile filename = 
+nonTestJsFile filename =
   (takeExtension filename == ".js") &&
   not (endswith "_test" $ takeBaseName filename)
 
