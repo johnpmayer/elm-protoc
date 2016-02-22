@@ -8,7 +8,7 @@ import Control.Monad.Except (MonadError)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.List.Utils (endswith)
 import qualified Data.Text as T
-import Shelly (Sh, echo, findWhen, fromText, hasExt, run_, shelly, toTextIgnore)
+import Shelly (Sh, findWhen, fromText, hasExt, shelly, toTextIgnore)
 import qualified Shelly as Sh
 import System.Directory
 import System.FilePath
@@ -24,7 +24,8 @@ ensureSetup =
     liftIO $ ensureTempDirExists
     ensureProtocAvailable
     ensureProtoJSAvailable
-    ensureClosureAvailable
+    ensureClosureLibraryAvailable
+    ensureClosureCompilerAvailable
 
 -- Common
 
@@ -68,30 +69,46 @@ ensureProtoJSAvailable =
 
 -- Installing Closure Library
 
-isClosureMissing :: IO Bool
-isClosureMissing = not <$> doesDirectoryExist closure_library_include_dir -- AND MORE CHECKS ??
+isClosureLibraryMissing :: IO Bool
+isClosureLibraryMissing = not <$> doesDirectoryExist closure_library_include_dir -- AND MORE CHECKS ??
 
-ensureClosureAvailable :: (MonadIO m, MonadError String m) => m ()
-ensureClosureAvailable =
-  whenM (liftIO isClosureMissing) $ liftIO $ do
+ensureClosureLibraryAvailable :: (MonadIO m, MonadError String m) => m ()
+ensureClosureLibraryAvailable =
+  whenM (liftIO isClosureLibraryMissing) $ liftIO $ do
     putStrLn "Cloning Closure Library repository from GitHub (git)"
     -- TODO pin a version
     callCommand $ unwords ["git", "clone", closure_library_repository, closure_library_dir]
 
+-- Installing Closure Compiler
+
+isClosureCompilerMissing :: IO Bool
+isClosureCompilerMissing = not <$> doesFileExist closure_compiler_jar
+
+ensureClosureCompilerAvailable :: (MonadIO m, MonadError String m) => m ()
+ensureClosureCompilerAvailable =
+  whenM (liftIO isClosureCompilerMissing) $ do
+    liftIO $ putStrLn "Downloading Closure Compiler Jar from google"
+    Http.send closure_compiler_url (Zip.extract closure_compiler_dir)
+
 -- Invoking Protocol Buffers Compiler
 
-getProtoFiles :: Sh.FilePath -> Sh [Sh.FilePath]
-getProtoFiles = findWhen (return . hasExt "proto")
+getProtoFilesSh :: Sh.FilePath -> Sh [Sh.FilePath]
+getProtoFilesSh = findWhen (return . hasExt "proto")
+
+getProtoFiles :: FilePath -> IO [FilePath]
+getProtoFiles sourceDirectory = shelly $
+  ((T.unpack . toTextIgnore) <$>) <$> getProtoFilesSh (convertToShFilePath sourceDirectory)
 
 runProtoc :: FilePath -> String -> IO ()
-runProtoc sourceDirectory prefix = shelly $ do
-  inputfiles <- (<$>) toTextIgnore <$> getProtoFiles (convertToShFilePath sourceDirectory)
-  forM_ inputfiles (echo . ("  with input file: " `T.append`))
-  let protoc_filepath = convertToShFilePath protoc_exe
-  run_ protoc_filepath $ inputfiles ++
+runProtoc sourceDirectory prefix = do
+  inputfiles <- getProtoFiles sourceDirectory
+  forM_ inputfiles (putStrLn . ("  with input file: " ++))
+  callCommand . unwords $
+    [ protoc_exe ] ++
+    inputfiles ++
     [ "--proto_path"
-    , T.pack sourceDirectory
-    , T.concat ["--js_out=binary,library=", T.pack prefix,",namespace_prefix=", T.pack prefix, ":", T.pack temp_js_out_dir ]
+    , sourceDirectory
+    , concat ["--js_out=binary,library=", prefix, ":", temp_js_out_dir ]
     ]
 
 runDepsWriter :: IO ()

@@ -12,5 +12,5 @@ main = do
   putStrLn $ "Generating JavaScript with protoc"
   runProtoc inputDir prefix
   copyProtobufJsIncludes
-  runDepsWriter
-  runClosureBuilder outputDir prefix
+  --runDepsWriter
+  --runClosureBuilder outputDir prefix

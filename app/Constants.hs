@@ -69,6 +69,8 @@ protobuf_js_binary_include_dir = protobuf_js_include_dir </> "binary"
 -- protobuf_js_messagefile
 -- protobuf_js_binaryfiles
 
+-- Closure Library JS Includes
+
 closure_library_repository :: String
 closure_library_repository = "https://github.com/google/closure-library"
 
@@ -89,3 +91,14 @@ closure_library_include_dir = closure_library_dir </> "closure"
 
 closure_library_third_party_include_dir :: FilePath
 closure_library_third_party_include_dir = closure_library_dir </> "third_party" </> "closure"
+
+-- Closure Compiler
+
+closure_compiler_url :: FilePath
+closure_compiler_url = "http://dl.google.com/closure-compiler/compiler-latest.zip"
+
+closure_compiler_dir :: FilePath
+closure_compiler_dir = temp_dir </> "closure_compiler"
+
+closure_compiler_jar :: FilePath
+closure_compiler_jar = closure_compiler_dir </> "compiler.jar"
