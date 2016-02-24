@@ -48,6 +48,7 @@ executable elm-protoc
                       , http-types
                       , MissingH
                       , mtl
+                      , neat-interpolation
                       , network
                       , optparse-applicative
                       , process

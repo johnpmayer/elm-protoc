@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module ShellUtils where
 
@@ -8,6 +9,7 @@ import Control.Monad.Except (MonadError)
 import Control.Monad.Trans (MonadIO, liftIO)
 import Data.List.Utils (endswith)
 import qualified Data.Text as T
+import NeatInterpolation (text)
 import Shelly (Sh, findWhen, fromText, hasExt, shelly, toTextIgnore)
 import qualified Shelly as Sh
 import System.Directory
@@ -37,6 +39,14 @@ ensureTempDirExists = do
       removeDirectoryRecursive temp_js_out_dir
     createDirectoryIfMissing True temp_js_out_dir
     createDirectoryIfMissing True temp_protobuf_js_include_dir
+
+-- TODO NOT DRY
+ensureNativeOutputDirExists :: FilePath -> String ->  IO ()
+ensureNativeOutputDirExists outputDir prefix =
+  let 
+    nativeOutputDir = outputDir </> "Native" </> prefix </> "Internal"
+  in
+    createDirectoryIfMissing True nativeOutputDir
 
 whenM :: Monad m => m Bool -> m () -> m ()
 whenM test action = test >>= \b -> when b action
@@ -140,15 +150,6 @@ runDepsGenerator prefix =
     writeFile deps_output_file . unlines $ 
       wrapper_provided : "" : map make_require provided
 
-runDepsWriter :: IO ()
-runDepsWriter =
-  callCommand $ unwords
-    [ "python"
-    , depswriter_script
-    , "--output_file=" ++ js_deps_file
-    , "--root=" ++ temp_js_out_dir
-    ]
-
 nonTestJsFile :: FilePath -> Bool
 nonTestJsFile filename =
   (takeExtension filename == ".js") &&
@@ -168,32 +169,42 @@ copyProtobufJsIncludes = do
   binaryFilenames <- filter nonTestJsFile <$> getDirectoryContents protobuf_js_binary_include_dir
   forM_ binaryFilenames $ copyFileInDirectory protobuf_js_binary_include_dir temp_protobuf_js_include_dir
 
-runClosureBuilder :: FilePath -> String -> IO ()
-runClosureBuilder outputDir prefix = do
-  let nativeOutputDirectory = outputDir </> "Native" </> prefix
-  createDirectoryIfMissing True nativeOutputDirectory
-  callCommand $ unwords
-    [ "python"
-    , closurebuilder_script
-    , "--output_file=" ++ (nativeOutputDirectory </> native_js_out_filename)
-    , "--output_mode=script"
-    , "--root=" ++ temp_js_out_dir
-    , "--root=" ++ temp_protobuf_js_include_dir
-    , "--root=" ++ closure_library_include_dir
-    , "--root=" ++ closure_library_third_party_include_dir
-    , "--input=" ++ js_deps_file
-    , "--namespace=\"" ++ prefix ++ "\""
-    ]
+addNativeModuleWrapper :: String -> String -> String
+addNativeModuleWrapper prefix content =
+  let 
+    proto_modulename = T.pack $ "Native." ++ prefix
+    contentT = T.pack content
+    prefixT = T.pack prefix
+  in 
+    T.unpack $ [text|
+      Elm.${proto_modulename} = Elm.${proto_modulename} || {};
+      Elm.${proto_modulename}.make = function(_elm) {
+        "use strict";
+        _elm.${proto_modulename} = _elm.${proto_modulename} || {};
+        if (_elm.${proto_modulename}.values) {
+          return _elm.${proto_modulename}.values;
+        }
 
-runClosureCompiler :: String -> IO ()
-runClosureCompiler prefix = do
+        ${contentT}
+
+        return _elm.${proto_modulename}.values = ${prefixT};
+      }
+    |]
+
+runClosureCompiler :: FilePath -> String -> IO ()
+runClosureCompiler outputDir prefix = do
   putStrLn "Minifying protoc generated code & dependencies"
-  callCommand $ unwords
-    [ "java"
-    , "-jar", closure_compiler_jar
+  compiler_output <- readProcess "java"
+    [ "-jar", closure_compiler_jar
     , "--dependency_mode", "STRICT"
     , "--entry_point", "goog:" ++ prefix
     , temp_js_out_dir
     , temp_protobuf_js_include_dir
     , closure_library_include_dir
-    ]
+    ] ""
+  let nativeModuleSrc = addNativeModuleWrapper prefix compiler_output
+  ensureNativeOutputDirExists outputDir prefix
+  let nativeOutputFile = outputDir </> "Native" </> prefix </> "Internal" </> "Proto" <.> "js"
+  putStrLn $ "Writing proto JS to: " ++ nativeOutputFile
+  writeFile nativeOutputFile nativeModuleSrc
+

@@ -58,17 +58,17 @@ nativeUnmarshal typename =
     }
   |]
   
-elmModule modulename moduleExports dependencyImports types contractTypeDefs modulevalues =
+elmModule prefix modulename moduleExports dependencyImports types contractTypeDefs modulevalues =
   [text|
-    module ${modulename} 
+    module ${prefix}.${modulename} 
       ${moduleExports} ) where
 
     import Opaque exposing (Buffer)
   
     ${dependencyImports}
     
-    import Native.Proto
-    import Native.${modulename}
+    import Native.${prefix}.Internal.Proto as Proto -- for compiler include only
+    import Native.${prefix}.${modulename}
     
     ${types}
     

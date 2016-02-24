@@ -14,9 +14,9 @@ import Graphics.Element exposing (Element, show)
 -- import Addressbook
 -- Does not support NESTED TYPES
 
-import Actions
-import Ship
-import World
+import ExampleProto.Actions
+import ExampleProto.Ship
+import ExampleProto.World
 
 exampleSnapshot = { ships = [] }
 

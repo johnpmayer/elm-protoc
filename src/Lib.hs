@@ -62,7 +62,7 @@ loadProtoFile filename =
       Right fileDescriptor -> (protoContents,fileDescriptor)
 
 parseProtoFile :: String -> FilePath -> FilePath -> IO ()
-parseProtoFile protoModulename filename outputDir =
+parseProtoFile outputPrefix filename outputDir =
   do
     (protoContents, fileDescriptor) <- loadProtoFile filename
     let dependencyFilenames = T.unpack . toText <$> (toList $ F.dependency fileDescriptor)
@@ -76,15 +76,17 @@ parseProtoFile protoModulename filename outputDir =
     createDirectoryIfMissing True outputDir
     let packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
     let modulename = toTitlePreserving packagename
-    let nativeDir = outputDir </> "Native"
+    let prefixDir = outputDir </> outputPrefix
+    let nativeDir = outputDir </> "Native" </> outputPrefix
     let specDir = outputDir </> "spec"
+    createDirectoryIfMissing True prefixDir
     createDirectoryIfMissing True nativeDir
     createDirectoryIfMissing True specDir
     let nativeFile = nativeDir </> T.unpack modulename <.> "js"
-    let elmFile = outputDir </> T.unpack modulename <.> "elm"
+    let elmFile = prefixDir </> T.unpack modulename <.> "elm"
     let specFile = specDir </> T.unpack packagename <.> "spec"
-    writeFile nativeFile $ genNativeModule (T.pack protoModulename) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
-    writeFile elmFile $ genElmModule fileDescriptor dependencyModulenames
+    writeFile nativeFile $ genNativeModule (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
+    writeFile elmFile $ genElmModule (T.pack outputPrefix) fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
 
 toText :: Utf8 -> Text
@@ -247,8 +249,8 @@ genElmType descriptor =
         _ -> T.concat $ zipWith elmRecordField recordPrefixes elmFields
   in elmRecordTypeDef typename oneofTypeDefs fields
 
-genElmModule :: FileDescriptorProto -> [Text] -> ByteString
-genElmModule fileDescriptor dependencyModulenames =
+genElmModule :: Text -> FileDescriptorProto -> [Text] -> ByteString
+genElmModule outputPrefix fileDescriptor dependencyModulenames =
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
@@ -290,6 +292,6 @@ genElmModule fileDescriptor dependencyModulenames =
       return $ valueBuilder modulename typename
 
     imports :: Text
-    imports = T.concat $ elmDependencyImport <$> dependencyModulenames
+    imports = T.concat $ elmDependencyImport . (T.append $ T.concat [outputPrefix, T.pack "."]) <$> dependencyModulenames
 
-  in encodeUtf8 . fromStrict $ elmModule modulename exports imports types contractTypes values
+  in encodeUtf8 . fromStrict $ elmModule outputPrefix modulename exports imports types contractTypes values
