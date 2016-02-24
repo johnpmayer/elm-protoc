@@ -13,6 +13,7 @@ import qualified Shelly as Sh
 import System.Directory
 import System.FilePath
 import System.Process
+import Text.Regex
 
 import Constants
 import Utils.Http as Http
@@ -111,6 +112,34 @@ runProtoc sourceDirectory prefix = do
     , concat ["--js_out=binary,library=", prefix, ":", temp_js_out_dir ]
     ]
 
+parseAllProvided :: String -> [String]
+parseAllProvided contents =
+  let 
+    provide_regex = mkRegex "^\\s*goog\\.provide\\(\\s*['\"](.+)['\"]\\s*\\)"
+  in case matchRegexAll provide_regex contents of
+    Just (_bef, _mat, rest, [provided]) -> 
+      provided : parseAllProvided rest
+    Just (_bef, _mat, rest, _) -> 
+      parseAllProvided rest -- this case really shouldn't...
+    Nothing -> []
+
+runDepsGenerator :: String -> IO ()
+runDepsGenerator prefix = 
+  let 
+    protoc_output_file = temp_js_out_dir </> prefix <.> "js"
+    deps_output_file = temp_js_out_dir </> prefix ++ "_Deps" <.> "js"
+    wrapper_provided = "goog.provide('" ++ prefix ++ "');"
+    make_require req = "goog.require('" ++ req ++ "');"
+  in do
+    putStrLn $ "Reading from: " ++ protoc_output_file
+    protoc_contents <- readFile protoc_output_file
+    let provided = parseAllProvided protoc_contents
+    whenM (doesFileExist deps_output_file) $ do
+      putStrLn "Removing old deps output file"
+      removeFile deps_output_file
+    writeFile deps_output_file . unlines $ 
+      wrapper_provided : "" : map make_require provided
+
 runDepsWriter :: IO ()
 runDepsWriter =
   callCommand $ unwords
@@ -154,4 +183,17 @@ runClosureBuilder outputDir prefix = do
     , "--root=" ++ closure_library_third_party_include_dir
     , "--input=" ++ js_deps_file
     , "--namespace=\"" ++ prefix ++ "\""
+    ]
+
+runClosureCompiler :: String -> IO ()
+runClosureCompiler prefix = do
+  putStrLn "Minifying protoc generated code & dependencies"
+  callCommand $ unwords
+    [ "java"
+    , "-jar", closure_compiler_jar
+    , "--dependency_mode", "STRICT"
+    , "--entry_point", "goog:" ++ prefix
+    , temp_js_out_dir
+    , temp_protobuf_js_include_dir
+    , closure_library_include_dir
     ]

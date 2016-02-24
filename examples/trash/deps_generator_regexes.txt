@@ -1,0 +1,11 @@
+_BASE_REGEX_STRING = r'^\s*goog\.%s\(\s*[\'"](.+)[\'"]\s*\)'
+_MODULE_REGEX = re.compile(_BASE_REGEX_STRING % 'module')
+_PROVIDE_REGEX = re.compile(_BASE_REGEX_STRING % 'provide')
+_REQUIRE_REGEX_STRING = (r'^\s*(?:(?:var|let|const)\s+[a-zA-Z_$][a-zA-Z0-9$_]*'
+_REQUIRES_REGEX = re.compile(_REQUIRE_REGEX_STRING)
+  _COMMENT_REGEX = re.compile(
+    return cls._COMMENT_REGEX.sub('', source)
+    for comment_content in cls._COMMENT_REGEX.findall(source):
+      match = _PROVIDE_REGEX.match(line)
+      match = _MODULE_REGEX.match(line)
+      match = _REQUIRES_REGEX.match(line)

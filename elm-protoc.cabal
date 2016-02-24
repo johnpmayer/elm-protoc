@@ -51,6 +51,7 @@ executable elm-protoc
                       , network
                       , optparse-applicative
                       , process
+                      , regex-compat
                       , shelly
                       , text
                       , zip-archive
