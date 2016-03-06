@@ -38,7 +38,8 @@ executable elm-protoc
                       , Utils.Http
                       , Utils.Zip
   ghc-options:          -threaded -rtsopts -with-rtsopts=-N -Wall
-  build-depends:        base
+  build-depends:        array
+                      , base
                       , bytestring
                       , directory
                       , elm-protoc
@@ -52,7 +53,8 @@ executable elm-protoc
                       , network
                       , optparse-applicative
                       , process
-                      , regex-compat
+                      , regex-base
+                      , regex-pcre-builtin
                       , shelly
                       , text
                       , zip-archive

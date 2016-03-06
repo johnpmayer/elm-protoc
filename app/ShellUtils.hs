@@ -1,12 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module ShellUtils where
 
 import Control.Monad
 import Control.Monad.Except (MonadError)
 import Control.Monad.Trans (MonadIO, liftIO)
+import Data.Array ((!))
 import Data.List.Utils (endswith)
 import qualified Data.Text as T
 import NeatInterpolation (text)
@@ -15,7 +17,8 @@ import qualified Shelly as Sh
 import System.Directory
 import System.FilePath
 import System.Process
-import Text.Regex
+import Text.Regex.Base (matchAllText, makeRegex)
+import Text.Regex.PCRE.String (Regex)
 
 import Constants
 import Utils.Http as Http
@@ -125,13 +128,9 @@ runProtoc sourceDirectory prefix = do
 parseAllProvided :: String -> [String]
 parseAllProvided contents =
   let 
-    provide_regex = mkRegex "^\\s*goog\\.provide\\(\\s*['\"](.+)['\"]\\s*\\)"
-  in case matchRegexAll provide_regex contents of
-    Just (_bef, _mat, rest, [provided]) -> 
-      provided : parseAllProvided rest
-    Just (_bef, _mat, rest, _) -> 
-      parseAllProvided rest -- this case really shouldn't...
-    Nothing -> []
+    (provide_regex :: Regex) = makeRegex ("^\\s*goog\\.provide\\(\\s*['\"](.+)['\"]\\s*\\)" :: String)
+    matches = matchAllText provide_regex contents
+  in map (fst . (! 1)) matches
 
 runDepsGenerator :: String -> IO ()
 runDepsGenerator prefix = 
@@ -143,6 +142,7 @@ runDepsGenerator prefix =
   in do
     putStrLn $ "Reading from: " ++ protoc_output_file
     protoc_contents <- readFile protoc_output_file
+    putStrLn "Finding dependencies"
     let provided = parseAllProvided protoc_contents
     whenM (doesFileExist deps_output_file) $ do
       putStrLn "Removing old deps output file"
