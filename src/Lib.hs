@@ -12,8 +12,11 @@ import            Data.ByteString.Lazy                              (ByteString,
 import qualified  Data.Char                                         as C
 import            Data.Foldable                                     (toList)
 import            Data.Int                                          (Int32)
+import qualified  Data.List                                         as L
 import            Data.List                                         (groupBy)
 import            Data.Maybe                                        (fromMaybe)
+import qualified  Data.Set                                          as S
+import            Data.Set                                          (Set)
 import            Data.Text                                         (Text)
 import qualified  Data.Text                                         as T
 import            Data.Text.Lazy                                    (fromStrict, toStrict)
@@ -152,6 +155,22 @@ genPrimitiveTypeName t =
     FET.TYPE_STRING   -> "String"
     _                 -> error $ "type not implemented - pull request - " ++ show t
 
+data Namespace = Namespace { name :: [Text], fullyQualifiedElmName :: Text }
+type Scope = [Set Namespace]
+    
+-- Given a scope and a type name , generate the fully qualified Elm type name
+fullyQualifyElmType :: Scope -> Text -> Text
+fullyQualifyElmType scope typename = 
+  let typepath = map toTitlePreserving $ T.split (=='.') typename
+  in case scope of
+    [] -> typename
+    (local : above) -> 
+      case toList $ S.filter (\namespace -> name namespace `L.isPrefixOf` typepath) local of
+        [] -> undefined
+        [namespace] -> undefined
+        (_:_:_) -> error "multiple matches???"
+        
+        
 
 -- TODO there's a thing here around nested types and membership in a oneof
 genElmField :: FieldDescriptorProto -> (Text, Text)
