@@ -91,7 +91,8 @@ parseProtoFile outputPrefix filename outputDir =
     let nativeFile = nativeDir </> T.unpack modulename <.> "js"
     let elmFile = prefixDir </> T.unpack modulename <.> "elm"
     let specFile = specDir </> T.unpack packagename <.> "spec"
-    writeFile nativeFile $ genNativeModule (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
+    --let internalModule
+    writeFile nativeFile $ genNativeModule (T.pack outputPrefix) (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
     writeFile elmFile $ genElmModule (T.pack outputPrefix) fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
 
@@ -101,11 +102,11 @@ toText = toStrict . decodeUtf8 . utf8
 toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
-genNativeMarshal :: DescriptorProto -> Text
-genNativeMarshal descriptor = undefined
+genNativeMarshal :: Text -> Text -> Text
+genNativeMarshal protoModulename typename = nativeMarshal protoModulename typename
 
-genNativeUnmarshal :: DescriptorProto -> Text
-genNativeUnmarshal descriptor = undefined
+genNativeUnmarshal :: Text -> Text -> Text
+genNativeUnmarshal protoModulename typename = nativeUnmarshal protoModulename typename
 
 getDependencyScope :: Text -> [Text] -> Scope
 getDependencyScope prefix dependencyModuleNames = 
@@ -113,8 +114,8 @@ getDependencyScope prefix dependencyModuleNames =
     makePackageRef x = (x, PackageReference . FQN $ T.concat [ prefix, T.pack ".", x ])
   in [M.fromList . fmap makePackageRef $ fmap toTitlePreserving dependencyModuleNames]
 
-genNativeModule :: Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
-genNativeModule protoModulename filename protoContents fileDescriptor dependencyModuleNames =
+genNativeModule :: Text -> Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
+genNativeModule outputPrefix protoModulename filename protoContents fileDescriptor dependencyModuleNames =
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
@@ -137,13 +138,13 @@ genNativeModule protoModulename filename protoContents fileDescriptor dependency
     marshalValues :: Text
     marshalValues = T.concat $ do
       descriptor <- descriptors
+      typename <- toTextE "Didn't find a name for the descriptor" . D.name <$> descriptors
       let typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
       valueBuilder <- [genNativeMarshal, genNativeUnmarshal]
-      return $ valueBuilder descriptor
+      return $ valueBuilder protoModulename typename
 
     values :: Text
-    --values = T.append encodeValues marshalValues
-    values = encodeValues
+    values = T.append encodeValues marshalValues
 
     exports :: Text
     exports = T.concat $ do
@@ -153,7 +154,7 @@ genNativeModule protoModulename filename protoContents fileDescriptor dependency
 
     protoSource :: Text
     protoSource = toStrict . decodeUtf8 $ protoContents
-  in encodeUtf8 . fromStrict $ nativeModule protoModulename (T.pack filename) packagename modulename protoSource values exports
+  in encodeUtf8 . fromStrict $ nativeModule outputPrefix protoModulename (T.pack filename) packagename modulename protoSource values exports
 
 genPrimitiveTypeName :: FET.Type -> Text
 genPrimitiveTypeName t =
@@ -331,7 +332,7 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
     values = T.concat $ do
       typename <- typenames
       valueBuilder <- [elmEncode, elmDecode, elmMarshal, elmUnmarshal]
-      return $ valueBuilder modulename typename
+      return $ valueBuilder outputPrefix modulename typename
 
     imports :: Text
     imports = T.concat $ elmDependencyImport . (T.append $ T.concat [outputPrefix, T.pack "."]) <$> dependencyModulenames

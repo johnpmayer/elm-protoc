@@ -5,21 +5,23 @@ module Templates where
 import Data.Text                (Text)
 import NeatInterpolation        (text)
 
-nativeModule protoModulename filename packagename modulename protoSource moduleValues moduleExports =
+nativeModule prefix protoModulename filename packagename modulename protoSource moduleValues moduleExports =
   [text|
-    Elm.Native.${modulename} = Elm.Native.${modulename} || {};
-    Elm.Native.${modulename}.make = function(_elm) {
+    Elm.Native.${prefix} = Elm.Native.${prefix} || {};
+    Elm.Native.${prefix}.${modulename} = Elm.Native.${prefix}.${modulename} || {};
+    Elm.Native.${prefix}.${modulename}.make = function(_elm) {
       "use strict";
-      _elm.Native.${modulename} = _elm.Native.${modulename} || {};
-      if (_elm.Native.${modulename}.values) {
-        return _elm.Native.${modulename}.values;
+      _elm.Native.${prefix} = _elm.Native.${prefix} || {};
+      _elm.Native.${prefix}.${modulename} = _elm.Native.${prefix}.${modulename} || {};
+      if (_elm.Native.${prefix}.${modulename}.values) {
+        return _elm.Native.${prefix}.${modulename}.values;
       }
 
       var Proto = Elm.Native.${protoModulename}.make(_elm);
 
       ${moduleValues}
 
-      return _elm.Native.${modulename}.values = {
+      return _elm.Native.${prefix}.${modulename}.values = {
         ${moduleExports}
       }
     }
@@ -44,14 +46,14 @@ nativeEncode protoModulename typename =
     }
   |]
 
-nativeMarshal typename = 
+nativeMarshal protoModulename typename = 
   [text|
-    var marshal${typename} = function(value_${typename}} {
+    var marshal${typename} = function(value_${typename}) {
       throw "Not implemented";
     }
   |]
   
-nativeUnmarshal typename = 
+nativeUnmarshal protoModulename typename = 
   [text|
     var unmarshal${typename} = function(message_${typename}) {
       throw "Not implemented";
@@ -121,26 +123,26 @@ elmContractTypeDef typename =
     type ${typename}Contract = Opaque_${typename}Contract
   |]
 
-elmDecode modulename typename = 
+elmDecode prefix modulename typename = 
   [text|
     decode${typename} : Buffer -> ${typename}Contract
-    decode${typename} = Native.${modulename}.decode${typename}
+    decode${typename} = Native.${prefix}.${modulename}.decode${typename}
   |]
 
-elmEncode modulename typename =
+elmEncode prefix modulename typename =
   [text|
     encode${typename} : ${typename}Contract -> Buffer
-    encode${typename} = Native.${modulename}.encode${typename}
+    encode${typename} = Native.${prefix}.${modulename}.encode${typename}
   |]
 
-elmUnmarshal modulename typename =
+elmUnmarshal prefix modulename typename =
   [text|
     unmarshal${typename} : ${typename}Contract -> ${typename}
-    unmarshal${typename} = Native.${modulename}.unmarshal${typename}
+    unmarshal${typename} = Native.${prefix}.${modulename}.unmarshal${typename}
   |]
 
-elmMarshal modulename typename = 
+elmMarshal prefix modulename typename = 
   [text|
     marshal${typename} : ${typename} -> ${typename}Contract
-    marshal${typename} = Native.${modulename}.marshal${typename}
+    marshal${typename} = Native.${prefix}.${modulename}.marshal${typename}
   |]
