@@ -15,6 +15,8 @@ import            Data.Int                                          (Int32)
 import qualified  Data.List                                         as L
 import            Data.List                                         (groupBy)
 import            Data.Maybe                                        (fromMaybe)
+import qualified  Data.Map                                          as M
+import            Data.Map                                          (Map)
 import qualified  Data.Set                                          as S
 import            Data.Set                                          (Set)
 import            Data.Text                                         (Text)
@@ -104,6 +106,12 @@ genNativeMarshal descriptor = undefined
 genNativeUnmarshal :: DescriptorProto -> Text
 genNativeUnmarshal descriptor = undefined
 
+getDependencyScope :: String -> [Text] -> Scope
+getDependencyScope prefix dependencyModuleNames = 
+  let
+    makePackageRef x = (x, PackageReference . FQN $ T.concat [ T.pack prefix, T.pack ".", x ])
+  in [M.fromList . fmap makePackageRef $ dependencyModuleNames]
+
 genNativeModule :: Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
 genNativeModule protoModulename filename protoContents fileDescriptor dependencyModuleNames =
   let
@@ -155,22 +163,28 @@ genPrimitiveTypeName t =
     FET.TYPE_STRING   -> "String"
     _                 -> error $ "type not implemented - pull request - " ++ show t
 
-data Namespace = Namespace { name :: [Text], fullyQualifiedElmName :: Text }
-type Scope = [Set Namespace]
+newtype FullyQualifiedName = FQN { getFQN :: Text }
+
+data Namespace
+  = PackageReference FullyQualifiedName
+  | NestedScope Scope
+
+type Scope = [Map Text Namespace]
     
 -- Given a scope and a type name , generate the fully qualified Elm type name
 fullyQualifyElmType :: Scope -> Text -> Text
 fullyQualifyElmType scope typename = 
-  let typepath = map toTitlePreserving $ T.split (=='.') typename
-  in case scope of
+  case scope of
     [] -> typename
-    (local : above) -> 
-      case toList $ S.filter (\namespace -> name namespace `L.isPrefixOf` typepath) local of
-        [] -> undefined
-        [namespace] -> undefined
-        (_:_:_) -> error "multiple matches???"
-        
-        
+    (local : ancestors) -> 
+      case T.split (=='.') typename of
+        [] -> error "null type name"
+        [typename] -> typename
+        (qualified : typepath) -> 
+          case M.lookup (toTitlePreserving qualified) local of
+            Nothing -> fullyQualifyElmType ancestors typename
+            Just (PackageReference name) -> T.concat $ getFQN name : T.pack "." : typepath
+            Just (NestedScope scope) -> undefined
 
 -- TODO there's a thing here around nested types and membership in a oneof
 genElmField :: FieldDescriptorProto -> (Text, Text)
