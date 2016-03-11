@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Lib
     ( parseProtoFile
@@ -106,11 +107,11 @@ genNativeMarshal descriptor = undefined
 genNativeUnmarshal :: DescriptorProto -> Text
 genNativeUnmarshal descriptor = undefined
 
-getDependencyScope :: String -> [Text] -> Scope
+getDependencyScope :: Text -> [Text] -> Scope
 getDependencyScope prefix dependencyModuleNames = 
   let
-    makePackageRef x = (x, PackageReference . FQN $ T.concat [ T.pack prefix, T.pack ".", x ])
-  in [M.fromList . fmap makePackageRef $ dependencyModuleNames]
+    makePackageRef x = (x, PackageReference . FQN $ T.concat [ prefix, T.pack ".", x ])
+  in [M.fromList . fmap makePackageRef $ fmap toTitlePreserving dependencyModuleNames]
 
 genNativeModule :: Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
 genNativeModule protoModulename filename protoContents fileDescriptor dependencyModuleNames =
@@ -163,11 +164,12 @@ genPrimitiveTypeName t =
     FET.TYPE_STRING   -> "String"
     _                 -> error $ "type not implemented - pull request - " ++ show t
 
-newtype FullyQualifiedName = FQN { getFQN :: Text }
+newtype FullyQualifiedName = FQN { getFQN :: Text } deriving (Show)
 
 data Namespace
   = PackageReference FullyQualifiedName
   | NestedScope Scope
+  deriving (Show)
 
 type Scope = [Map Text Namespace]
     
@@ -187,19 +189,19 @@ fullyQualifyElmType scope typename =
             Just (NestedScope scope) -> undefined
 
 -- TODO there's a thing here around nested types and membership in a oneof
-genElmField :: FieldDescriptorProto -> (Text, Text)
-genElmField fieldDescriptor =
+genElmField :: Scope -> FieldDescriptorProto -> (Text, Text)
+genElmField scope fieldDescriptor =
   let
     name :: Text
     name = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
 
     typename :: Text
-    typename =
+    typename = 
       case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
         (Just t, _) -> genPrimitiveTypeName t
         (_, Just tn) ->
           let
-            basetype = case toText <$> FE.extendee fieldDescriptor of
+            basetype = fullyQualifyElmType scope $ case toText <$> FE.extendee fieldDescriptor of
               Nothing -> toTitlePreserving . toText $ tn
               Just ee -> error "where?" -- T.concat [toTitlePreserving ee, "_", toText tn]
           in
@@ -214,12 +216,12 @@ genElmField fieldDescriptor =
 
     in (name, typename)
 
-genOneofType :: Text -> OneofDescriptorProto -> [FieldDescriptorProto] -> Text
-genOneofType baseTypename oneofDescriptor fieldDescriptors =
+genOneofType :: Scope -> Text -> OneofDescriptorProto -> [FieldDescriptorProto] -> Text
+genOneofType scope baseTypename oneofDescriptor fieldDescriptors =
   let
     oneofSubTypeName = toTextE "Didn't find a name for the oneof" . O.name $ oneofDescriptor
     typename = T.concat [baseTypename, "_oneof_", oneofSubTypeName]
-    oneofFields = genElmField <$> fieldDescriptors
+    oneofFields = genElmField scope <$> fieldDescriptors
     oneofPrefixes = T.pack "=" : repeat (T.pack "|")
     fields =
       case oneofFields of
@@ -227,8 +229,8 @@ genOneofType baseTypename oneofDescriptor fieldDescriptors =
         _ -> T.concat $ zipWith (elmSumField typename) oneofPrefixes oneofFields
   in elmSumTypeDef typename fields
 
-genElmType :: DescriptorProto -> Text
-genElmType descriptor =
+genElmTypeDefs :: Scope -> DescriptorProto -> Text
+genElmTypeDefs scope descriptor =
   let
     typename :: Text
     typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
@@ -257,7 +259,7 @@ genElmType descriptor =
     oneofRecordFields :: [(Text, Text)]
     oneofRecordFields = do
       name <- oneofFieldNames
-      let fieldTypename = T.concat [typename, "_oneof_", name]
+      let fieldTypename = fullyQualifyElmType scope $ T.concat [typename, "_oneof_", name]
       return (name, fieldTypename)
 
     oneofTypes :: [(OneofDescriptorProto, [FieldDescriptorProto])]
@@ -267,10 +269,10 @@ genElmType descriptor =
       in zip oneofDescriptors groupedOneofFields
 
     oneofTypeDefs :: Text
-    oneofTypeDefs = T.concat $ map (uncurry $ genOneofType typename) oneofTypes
+    oneofTypeDefs = T.concat $ map (uncurry $ genOneofType scope typename) oneofTypes
 
     elmFields :: [(Text, Text)]
-    elmFields = (genElmField <$> standaloneFields) ++ oneofRecordFields
+    elmFields = (genElmField scope <$> standaloneFields) ++ oneofRecordFields
 
     recordPrefixes :: [Text]
     recordPrefixes = T.pack "{" : repeat (T.pack ",")
@@ -287,6 +289,9 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
+
+    dependencyScope :: Scope
+    dependencyScope = getDependencyScope outputPrefix dependencyModulenames
 
     modulename :: Text
     modulename = toTitlePreserving packagename
@@ -312,8 +317,12 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
       prefix <- ["encode", "decode", "marshal", "unmarshal"]
       return  $ T.concat [T.pack prefix, typename]
 
-    types :: Text
-    types = T.concat $ genElmType <$> descriptors
+    -- TODO all of the messages represent new scopes as well
+    scope :: Scope
+    scope = dependencyScope
+
+    typeDefs :: Text
+    typeDefs = T.concat $ genElmTypeDefs scope <$> descriptors
 
     contractTypes :: Text
     contractTypes = T.concat $ elmContractTypeDef <$> typenames
@@ -327,4 +336,7 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
     imports :: Text
     imports = T.concat $ elmDependencyImport . (T.append $ T.concat [outputPrefix, T.pack "."]) <$> dependencyModulenames
 
-  in encodeUtf8 . fromStrict $ elmModule outputPrefix modulename exports imports types contractTypes values
+    comment :: Text
+    comment = T.pack . show $ scope
+
+  in encodeUtf8 . fromStrict $ elmModule outputPrefix modulename exports imports typeDefs contractTypes values comment

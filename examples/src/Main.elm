@@ -16,7 +16,7 @@ import Graphics.Element exposing (Element, show)
 
 import ExampleProto.Actions
 import ExampleProto.Ship
-import ExampleProto.World
+import ExampleProto.World exposing (..)
 
 exampleSnapshot = { ships = [] }
 
@@ -24,8 +24,8 @@ exampleSnapshot = { ships = [] }
 main : Element
 main = 
   let 
-    marshaledSnapshot = World.marshalSnapshot exampleSnapshot
-    wireSnapshot = World.encodeSnapshot marshaledSnapshot
-    decodedSnapshot = World.decodeSnapshot wireSnapshot
-    finalExampleSnapshot = World.unmarshalSnapshot decodedSnapshot
+    marshaledSnapshot = marshalSnapshot exampleSnapshot
+    wireSnapshot = encodeSnapshot marshaledSnapshot
+    decodedSnapshot = decodeSnapshot wireSnapshot
+    finalExampleSnapshot = unmarshalSnapshot decodedSnapshot
   in show finalExampleSnapshot

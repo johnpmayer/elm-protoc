@@ -58,8 +58,13 @@ nativeUnmarshal typename =
     }
   |]
   
-elmModule prefix modulename moduleExports dependencyImports types contractTypeDefs modulevalues =
+elmModule prefix modulename moduleExports dependencyImports types contractTypeDefs modulevalues comment =
   [text|
+    
+    {-
+     - ${comment}
+     -}
+
     module ${prefix}.${modulename} 
       ${moduleExports} ) where
 
