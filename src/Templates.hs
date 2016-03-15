@@ -2,6 +2,8 @@
 
 module Templates where
 
+import qualified Data.Text as T
+
 import Data.Text                (Text)
 import NeatInterpolation        (text)
 
@@ -46,17 +48,33 @@ nativeEncode protoModulename typename =
     }
   |]
 
-nativeMarshal protoModulename typename = 
+nativeOneofMarshal = undefined
+
+nativeRecordMarshal protoModulename typename = 
   [text|
     var marshal${typename} = function(value_${typename}) {
       throw "Not implemented";
     }
   |]
-  
-nativeUnmarshal protoModulename typename = 
-  [text|
-    var unmarshal${typename} = function(message_${typename}) {
-      throw "Not implemented";
+
+nativeOneofUnmarshal = undefined
+
+nativeFieldUnmarshalStatement contractValueName = undefined
+
+nativeMessageUnmarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text
+nativeMessageUnmarshal protoModulename typename fields = 
+  let 
+    contractValueName = T.concat [ typename, T.pack "_contract" ]
+    makeFieldUnmarshalStatement field = [text|
+      var ${fst field} = ${snd field $ contractValueName};
+    |]
+    fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
+    constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields
+    applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
+  in [text|
+    var unmarshal${typename} = function(${contractValueName}) {
+      ${fieldUnmarshalStatements}
+      return ${applyN}(${typename}${constructorArguments});
     }
   |]
   

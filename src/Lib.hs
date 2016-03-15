@@ -103,10 +103,10 @@ toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
 genNativeMarshal :: Text -> Text -> Text
-genNativeMarshal protoModulename typename = nativeMarshal protoModulename typename
+genNativeMarshal protoModulename typename = undefined
 
 genNativeUnmarshal :: Text -> Text -> Text
-genNativeUnmarshal protoModulename typename = nativeUnmarshal protoModulename typename
+genNativeUnmarshal protoModulename typename = undefined
 
 getDependencyScope :: Text -> [Text] -> Scope
 getDependencyScope prefix dependencyModuleNames = 
