@@ -61,6 +61,11 @@ nativeOneofUnmarshal = undefined
 
 nativeFieldUnmarshalStatement contractValueName = undefined
 
+unmarshalFunc :: Text -> Text -> (Text -> Text)
+unmarshalFunc qualifier typename = \contractValueName ->
+  case typename of
+    _ -> [text| ${qualifier}unmarshal${typename}(${contractValueName}) |]
+
 nativeMessageUnmarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text
 nativeMessageUnmarshal protoModulename typename fields = 
   let 

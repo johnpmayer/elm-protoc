@@ -102,11 +102,50 @@ toText = toStrict . decodeUtf8 . utf8
 toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
-genNativeMarshal :: Text -> Text -> Text
+genNativeMarshal :: Scope -> DescriptorProto -> Text
 genNativeMarshal protoModulename typename = undefined
 
-genNativeUnmarshal :: Text -> Text -> Text
-genNativeUnmarshal protoModulename typename = undefined
+genNativeUnmarshal :: Scope -> DescriptorProto -> Text
+genNativeUnmarshal scope descriptor = 
+  let
+    typename :: Text
+    typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
+
+    fieldDescriptors :: [FieldDescriptorProto]
+    fieldDescriptors = toList $ D.field descriptor
+
+    standaloneFields :: [FieldDescriptorProto]
+    standaloneFields = filter (\fd -> FE.oneof_index fd == Nothing) fieldDescriptors
+
+    oneofFields :: [(Int32, FieldDescriptorProto)]
+    oneofFields =
+      let
+        accum fd xs =
+          case FE.oneof_index fd of
+            Nothing -> xs
+            Just index -> (index, fd) : xs
+      in foldr accum [] fieldDescriptors
+
+    oneofDescriptors :: [OneofDescriptorProto]
+    oneofDescriptors = toList $ D.oneof_decl descriptor
+
+    oneofFieldNames :: [Text]
+    oneofFieldNames = toTextE "Didn't find a name for the oneof" . O.name <$> oneofDescriptors
+
+    oneofRecordFields :: [(Text, Text)]
+    oneofRecordFields = do
+      name <- oneofFieldNames
+      let fieldTypename = fullyQualifyElmType scope $ T.concat [typename, "_oneof_", name]
+      return (name, fieldTypename)
+
+    oneofTypes :: [(OneofDescriptorProto, [FieldDescriptorProto])]
+    oneofTypes =
+      let
+        groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
+      in zip oneofDescriptors groupedOneofFields
+
+  in undefined
+
 
 getDependencyScope :: Text -> [Text] -> Scope
 getDependencyScope prefix dependencyModuleNames = 
@@ -141,7 +180,7 @@ genNativeModule outputPrefix protoModulename filename protoContents fileDescript
       typename <- toTextE "Didn't find a name for the descriptor" . D.name <$> descriptors
       let typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
       valueBuilder <- [genNativeMarshal, genNativeUnmarshal]
-      return $ valueBuilder protoModulename typename
+      return $ valueBuilder [M.empty] descriptor
 
     values :: Text
     values = T.append encodeValues marshalValues
