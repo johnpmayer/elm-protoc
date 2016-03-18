@@ -48,7 +48,7 @@ nativeEncode protoModulename typename =
     }
   |]
 
-nativeOneofMarshal = undefined
+nativeOneofMarshal = error "nativeOneofMarshal"
 
 nativeRecordMarshal protoModulename typename = 
   [text|
@@ -57,21 +57,31 @@ nativeRecordMarshal protoModulename typename =
     }
   |]
 
-nativeOneofUnmarshal = undefined
+nativeOneofUnmarshal = error "nativeOneofUnmarshal"
 
-nativeFieldUnmarshalStatement contractValueName = undefined
+nativeFieldUnmarshalStatement contractValueName = error "nativeFieldUnmarshalStatement"
 
-unmarshalFunc :: Text -> Text -> (Text -> Text)
-unmarshalFunc qualifier typename = \contractValueName ->
+unmarshalFunc :: Text -> Text -> Text -> Text -> Text
+unmarshalFunc qualifier typename fieldName contractValueName =
   case typename of
-    _ -> [text| ${qualifier}unmarshal${typename}(${contractValueName}) |]
+    _ -> [text| var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName}) |]
+
+unmarshalMaybeFunc :: Text -> Text -> Text -> Text -> Text
+unmarshalMaybeFunc qualifier typename fieldName contractValueName =
+  case typename of
+    _ -> [text| var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName}) |]
+
+unmarshalListFunc :: Text -> Text -> Text -> Text -> Text
+unmarshalListFunc qualifier typename fieldName contractValueName =
+  case typename of
+    _ -> [text| var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName}) |]
 
 nativeMessageUnmarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text
 nativeMessageUnmarshal protoModulename typename fields = 
   let 
     contractValueName = T.concat [ typename, T.pack "_contract" ]
     makeFieldUnmarshalStatement field = [text|
-      var ${fst field} = ${snd field $ contractValueName};
+      ${snd field $ contractValueName};
     |]
     fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
     constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields

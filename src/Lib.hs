@@ -103,7 +103,35 @@ toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
 genNativeMarshal :: Scope -> DescriptorProto -> Text
-genNativeMarshal protoModulename typename = undefined
+genNativeMarshal protoModulename typename = error "genNativeMarshal"
+
+genNativeFieldUnmarshal :: Scope -> FieldDescriptorProto -> (Text -> Text)
+genNativeFieldUnmarshal scope fieldDescriptor =
+  let
+    name :: Text
+    name = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
+
+    --(label, qualifier, typename) :: (label, [Text], Text)
+    (label, qualifierList, typename) = 
+      case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+        (Just t, _) -> error "genNativeFieldUnmarshal primitive"
+        (_, Just tn) -> 
+          let
+            (_,justTypename) = splitTypePath . toText $ tn
+            justQualifier = getElmTypeQualifier scope $ toText tn
+          in 
+            case FE.label fieldDescriptor of
+              Nothing -> error "what's the default - required/optional/repeated"
+              Just (label) -> (label, justQualifier, justTypename)
+    
+    qualifier :: Text
+    qualifier = T.intercalate (T.pack ".") qualifierList
+
+  in
+    case label of 
+      FEL.LABEL_REQUIRED -> unmarshalFunc qualifier typename name 
+      FEL.LABEL_OPTIONAL -> unmarshalMaybeFunc qualifier typename name 
+      FEL.LABEL_REPEATED -> unmarshalListFunc qualifier typename name 
 
 genNativeUnmarshal :: Scope -> DescriptorProto -> Text
 genNativeUnmarshal scope descriptor = 
@@ -144,7 +172,13 @@ genNativeUnmarshal scope descriptor =
         groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
       in zip oneofDescriptors groupedOneofFields
 
-  in undefined
+    fields :: [(Text, Text)]
+    fields = (genElmField scope <$> standaloneFields) ++ oneofRecordFields
+
+    scope :: Scope
+    scope = []
+
+  in error "genNativeUnmarshal"
 
 
 getDependencyScope :: Text -> [Text] -> Scope
@@ -216,17 +250,30 @@ type Scope = [Map Text Namespace]
 -- Given a scope and a type name , generate the fully qualified Elm type name
 fullyQualifyElmType :: Scope -> Text -> Text
 fullyQualifyElmType scope typename = 
+  error "join"
+
+splitTypePath :: Text -> ([Text],Text)
+splitTypePath typename =
+  case T.split (=='.') typename of
+    [] -> error "empty type name"
+    fullPath -> 
+      let
+        typename = last fullPath
+        startPath = reverse . tail . reverse $ fullPath
+      in (startPath, typename)
+
+getElmTypeQualifier :: Scope -> Text -> [Text]
+getElmTypeQualifier scope typename =
   case scope of
-    [] -> typename
+    [] -> [] --typename
     (local : ancestors) -> 
-      case T.split (=='.') typename of
-        [] -> error "null type name"
-        [typename] -> typename
-        (qualified : typepath) -> 
+      case splitTypePath typename of
+        ([], _) -> [] --typename
+        ((qualified : typepath), _)-> 
           case M.lookup (toTitlePreserving qualified) local of
-            Nothing -> fullyQualifyElmType ancestors typename
-            Just (PackageReference name) -> T.concat $ getFQN name : T.pack "." : typepath
-            Just (NestedScope scope) -> undefined
+            Nothing -> getElmTypeQualifier ancestors typename
+            Just (PackageReference name) -> getFQN name : typepath
+            Just (NestedScope scope) -> error "todo nested scope"
 
 -- TODO there's a thing here around nested types and membership in a oneof
 genElmField :: Scope -> FieldDescriptorProto -> (Text, Text)
