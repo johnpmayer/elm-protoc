@@ -92,7 +92,9 @@ parseProtoFile outputPrefix filename outputDir =
     let elmFile = prefixDir </> T.unpack modulename <.> "elm"
     let specFile = specDir </> T.unpack packagename <.> "spec"
     --let internalModule
+    putStrLn $ "Writing " ++ nativeFile
     writeFile nativeFile $ genNativeModule (T.pack outputPrefix) (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
+    putStrLn $ "Writing " ++ elmFile
     writeFile elmFile $ genElmModule (T.pack outputPrefix) fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
 
@@ -103,38 +105,48 @@ toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
 genNativeMarshal :: Scope -> DescriptorProto -> Text
-genNativeMarshal protoModulename typename = error "genNativeMarshal"
+genNativeMarshal scope descriptor =
+  let
+    typename :: Text
+    typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
+  in nativeRecordMarshal typename
 
-genNativeFieldUnmarshal :: Scope -> FieldDescriptorProto -> (Text -> Text)
+genNativeFieldUnmarshal :: Scope -> FieldDescriptorProto -> (Text, Text -> Text)
 genNativeFieldUnmarshal scope fieldDescriptor =
   let
     name :: Text
     name = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
 
-    --(label, qualifier, typename) :: (label, [Text], Text)
-    (label, qualifierList, typename) = 
-      case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
-        (Just t, _) -> error "genNativeFieldUnmarshal primitive"
-        (_, Just tn) -> 
-          let
-            (_,justTypename) = splitTypePath . toText $ tn
-            justQualifier = getElmTypeQualifier scope $ toText tn
-          in 
-            case FE.label fieldDescriptor of
-              Nothing -> error "what's the default - required/optional/repeated"
-              Just (label) -> (label, justQualifier, justTypename)
-    
-    qualifier :: Text
-    qualifier = T.intercalate (T.pack ".") qualifierList
-
+    label = case FE.label fieldDescriptor of
+      Nothing -> error "what's the default - required/optional/repeated"
+      Just (l) -> l
   in
-    case label of 
-      FEL.LABEL_REQUIRED -> unmarshalFunc qualifier typename name 
-      FEL.LABEL_OPTIONAL -> unmarshalMaybeFunc qualifier typename name 
-      FEL.LABEL_REPEATED -> unmarshalListFunc qualifier typename name 
+    case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+      (Just t, _) ->
+        case label of
+          FEL.LABEL_REQUIRED -> (name, unmarshalPrimitive name)
+          FEL.LABEL_OPTIONAL -> (name, unmarshalMaybePrimitive name)
+          FEL.LABEL_REPEATED -> (name, unmarshalListPrimitive name)
+      (_, Just tn) ->
+        let
+          (_,typename) = splitTypePath . toText $ tn
+          qualifierList = getElmTypeQualifier scope $ toText tn
+          qualifier = T.intercalate (T.pack ".") qualifierList
+        in
+          case label of
+            FEL.LABEL_REQUIRED -> (name, unmarshalFunc qualifier typename name)
+            FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifier typename name)
+            FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifier typename name)
+
+genNativeOneofUnmarshal :: Scope -> OneofDescriptorProto -> [FieldDescriptorProto] -> (Text, Text -> Text)
+genNativeOneofUnmarshal scope oneofDescriptor fieldDescriptors =
+  let
+    oneofFieldName :: Text
+    oneofFieldName = toTextE "Didn't find a name for the oneof" . O.name $ oneofDescriptor
+  in (oneofFieldName, nativeOneofUnmarshal oneofFieldName)
 
 genNativeUnmarshal :: Scope -> DescriptorProto -> Text
-genNativeUnmarshal scope descriptor = 
+genNativeUnmarshal scope descriptor =
   let
     typename :: Text
     typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
@@ -142,8 +154,14 @@ genNativeUnmarshal scope descriptor =
     fieldDescriptors :: [FieldDescriptorProto]
     fieldDescriptors = toList $ D.field descriptor
 
+    scope :: Scope
+    scope = []
+
     standaloneFields :: [FieldDescriptorProto]
     standaloneFields = filter (\fd -> FE.oneof_index fd == Nothing) fieldDescriptors
+
+    standaloneFieldUnmarshalers :: [(Text, Text -> Text)]
+    standaloneFieldUnmarshalers = genNativeFieldUnmarshal scope <$> standaloneFields
 
     oneofFields :: [(Int32, FieldDescriptorProto)]
     oneofFields =
@@ -157,32 +175,20 @@ genNativeUnmarshal scope descriptor =
     oneofDescriptors :: [OneofDescriptorProto]
     oneofDescriptors = toList $ D.oneof_decl descriptor
 
-    oneofFieldNames :: [Text]
-    oneofFieldNames = toTextE "Didn't find a name for the oneof" . O.name <$> oneofDescriptors
-
-    oneofRecordFields :: [(Text, Text)]
-    oneofRecordFields = do
-      name <- oneofFieldNames
-      let fieldTypename = fullyQualifyElmType scope $ T.concat [typename, "_oneof_", name]
-      return (name, fieldTypename)
-
     oneofTypes :: [(OneofDescriptorProto, [FieldDescriptorProto])]
     oneofTypes =
       let
         groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
       in zip oneofDescriptors groupedOneofFields
 
-    fields :: [(Text, Text)]
-    fields = (genElmField scope <$> standaloneFields) ++ oneofRecordFields
+    oneofUnmarshalers :: [(Text, Text -> Text)]
+    oneofUnmarshalers = uncurry (genNativeOneofUnmarshal scope) <$> oneofTypes
 
-    scope :: Scope
-    scope = []
-
-  in error "genNativeUnmarshal"
+  in nativeMessageUnmarshal typename (standaloneFieldUnmarshalers ++ oneofUnmarshalers)
 
 
 getDependencyScope :: Text -> [Text] -> Scope
-getDependencyScope prefix dependencyModuleNames = 
+getDependencyScope prefix dependencyModuleNames =
   let
     makePackageRef x = (x, PackageReference . FQN $ T.concat [ prefix, T.pack ".", x ])
   in [M.fromList . fmap makePackageRef $ fmap toTitlePreserving dependencyModuleNames]
@@ -211,7 +217,6 @@ genNativeModule outputPrefix protoModulename filename protoContents fileDescript
     marshalValues :: Text
     marshalValues = T.concat $ do
       descriptor <- descriptors
-      typename <- toTextE "Didn't find a name for the descriptor" . D.name <$> descriptors
       let typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
       valueBuilder <- [genNativeMarshal, genNativeUnmarshal]
       return $ valueBuilder [M.empty] descriptor
@@ -246,17 +251,21 @@ data Namespace
   deriving (Show)
 
 type Scope = [Map Text Namespace]
-    
+
 -- Given a scope and a type name , generate the fully qualified Elm type name
 fullyQualifyElmType :: Scope -> Text -> Text
-fullyQualifyElmType scope typename = 
-  error "join"
+fullyQualifyElmType scope typename =
+  let
+    (_,justTypename) = splitTypePath typename
+    justQualifier = getElmTypeQualifier scope typename
+  in
+    T.intercalate "." $ justQualifier ++ [justTypename]
 
 splitTypePath :: Text -> ([Text],Text)
 splitTypePath typename =
   case T.split (=='.') typename of
     [] -> error "empty type name"
-    fullPath -> 
+    fullPath ->
       let
         typename = last fullPath
         startPath = reverse . tail . reverse $ fullPath
@@ -266,10 +275,10 @@ getElmTypeQualifier :: Scope -> Text -> [Text]
 getElmTypeQualifier scope typename =
   case scope of
     [] -> [] --typename
-    (local : ancestors) -> 
+    (local : ancestors) ->
       case splitTypePath typename of
         ([], _) -> [] --typename
-        ((qualified : typepath), _)-> 
+        ((qualified : typepath), _)->
           case M.lookup (toTitlePreserving qualified) local of
             Nothing -> getElmTypeQualifier ancestors typename
             Just (PackageReference name) -> getFQN name : typepath
@@ -283,7 +292,7 @@ genElmField scope fieldDescriptor =
     name = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
 
     typename :: Text
-    typename = 
+    typename =
       case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
         (Just t, _) -> genPrimitiveTypeName t
         (_, Just tn) ->

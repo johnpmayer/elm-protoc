@@ -38,7 +38,7 @@ ensureSetup =
 ensureTempDirExists :: IO ()
 ensureTempDirExists = do
     createDirectoryIfMissing True temp_dir
-    whenM (doesDirectoryExist temp_js_out_dir) $ 
+    whenM (doesDirectoryExist temp_js_out_dir) $
       removeDirectoryRecursive temp_js_out_dir
     createDirectoryIfMissing True temp_js_out_dir
     createDirectoryIfMissing True temp_protobuf_js_include_dir
@@ -46,7 +46,7 @@ ensureTempDirExists = do
 -- TODO NOT DRY
 ensureNativeOutputDirExists :: FilePath -> String ->  IO ()
 ensureNativeOutputDirExists outputDir prefix =
-  let 
+  let
     nativeOutputDir = outputDir </> "Native" </> prefix </> "Internal"
   in
     createDirectoryIfMissing True nativeOutputDir
@@ -127,14 +127,14 @@ runProtoc sourceDirectory prefix = do
 
 parseAllProvided :: String -> [String]
 parseAllProvided contents =
-  let 
+  let
     (provide_regex :: Regex) = makeRegex ("^\\s*goog\\.provide\\(\\s*['\"](.+)['\"]\\s*\\)" :: String)
     matches = matchAllText provide_regex contents
   in map (fst . (! 1)) matches
 
 runDepsGenerator :: String -> IO ()
-runDepsGenerator prefix = 
-  let 
+runDepsGenerator prefix =
+  let
     protoc_output_file = temp_js_out_dir </> prefix <.> "js"
     deps_output_file = temp_js_out_dir </> prefix ++ "_Deps" <.> "js"
     wrapper_provided = "goog.provide('" ++ prefix ++ "');"
@@ -147,7 +147,7 @@ runDepsGenerator prefix =
     whenM (doesFileExist deps_output_file) $ do
       putStrLn "Removing old deps output file"
       removeFile deps_output_file
-    writeFile deps_output_file . unlines $ 
+    writeFile deps_output_file . unlines $
       wrapper_provided : "" : map make_require provided
 
 nonTestJsFile :: FilePath -> Bool
@@ -171,23 +171,27 @@ copyProtobufJsIncludes = do
 
 addNativeModuleWrapper :: String -> String -> String
 addNativeModuleWrapper prefix content =
-  let 
+  let
     proto_modulename = T.pack $ "Native." ++ prefix
     contentT = T.pack content
     prefixT = T.pack prefix
-  in 
+  in
     T.unpack $ [text|
       Elm.${proto_modulename} = Elm.${proto_modulename} || {};
-      Elm.${proto_modulename}.make = function(_elm) {
+      Elm.${proto_modulename}.Internal = Elm.${proto_modulename}.Internal || {};
+      Elm.${proto_modulename}.Internal.Proto = Elm.${proto_modulename}.Internal.Proto || {};
+      Elm.${proto_modulename}.Internal.Proto.make = function(_elm) {
         "use strict";
         _elm.${proto_modulename} = _elm.${proto_modulename} || {};
-        if (_elm.${proto_modulename}.values) {
-          return _elm.${proto_modulename}.values;
+        _elm.${proto_modulename}.Internal = _elm.${proto_modulename}.Internal || {};
+        _elm.${proto_modulename}.Internal.Proto = _elm.${proto_modulename}.Internal.Proto || {};
+        if (_elm.${proto_modulename}.Internal.Proto.values) {
+          return _elm.${proto_modulename}.Internal.Proto.values;
         }
 
         ${contentT}
 
-        return _elm.${proto_modulename}.values = ${prefixT};
+        return _elm.${proto_modulename}.Internal.Proto.values = proto;
       }
     |]
 
@@ -207,4 +211,3 @@ runClosureCompiler outputDir prefix = do
   let nativeOutputFile = outputDir </> "Native" </> prefix </> "Internal" </> "Proto" <.> "js"
   putStrLn $ "Writing proto JS to: " ++ nativeOutputFile
   writeFile nativeOutputFile nativeModuleSrc
-
