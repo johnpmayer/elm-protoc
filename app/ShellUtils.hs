@@ -174,9 +174,10 @@ addNativeModuleWrapper prefix content =
   let
     proto_modulename = T.pack $ "Native." ++ prefix
     contentT = T.pack content
-    prefixT = T.pack prefix
+    --prefixT = T.pack prefix
   in
     T.unpack $ [text|
+      Elm.Native = Elm.Native || {};
       Elm.${proto_modulename} = Elm.${proto_modulename} || {};
       Elm.${proto_modulename}.Internal = Elm.${proto_modulename}.Internal || {};
       Elm.${proto_modulename}.Internal.Proto = Elm.${proto_modulename}.Internal.Proto || {};

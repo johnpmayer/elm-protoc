@@ -51,6 +51,7 @@ nativeEncode protoModulename typename =
 nativeRecordMarshal typename =
   [text|
     var marshal${typename} = function(value_${typename}) {
+      var contract_${typename} = new Proto.${typename}();
       throw "Not implemented - native record marshal";
     }
   |]
