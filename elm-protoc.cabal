@@ -17,6 +17,7 @@ library
   hs-source-dirs:       src
   exposed-modules:      Lib
   other-modules:        Templates
+                      , Utils
   build-depends:        base
                       , bytestring
                       , containers

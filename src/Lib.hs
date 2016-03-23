@@ -42,16 +42,7 @@ import            Text.ProtocolBuffers.Basic                        (Utf8, utf8)
 import            Text.ProtocolBuffers.ProtoCompile.Parser          (parseProto)
 
 import Templates
-
-toTitlePreserving :: Text -> Text
-toTitlePreserving =
-  let
-    walk (capitalize, rem) char =
-      let
-        capitalizeNext = not $ C.isAlpha char
-        newRem = T.snoc rem (if capitalize then C.toUpper char else char)
-      in (capitalizeNext, newRem)
-  in snd . T.foldl walk (True, T.empty)
+import Utils
 
 groupByKey :: (Eq k) => (a -> k) -> [a] -> [[a]]
 groupByKey keyFun =
@@ -104,12 +95,51 @@ toText = toStrict . decodeUtf8 . utf8
 toTextE :: String -> Maybe Utf8 -> Text
 toTextE errorMsg = toText . fromMaybe (error errorMsg)
 
-genNativeMarshal :: Scope -> DescriptorProto -> Text
-genNativeMarshal scope descriptor =
+genNativeFieldMarshal :: Scope -> FieldDescriptorProto -> (Text, Text -> Text)
+genNativeFieldMarshal scope fieldDescriptor =
+  let
+    name :: Text
+    name = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
+
+    label = case FE.label fieldDescriptor of
+      Nothing -> error "what's the default - required/optional/repeated"
+      Just (l) -> l
+  in
+    case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+      (Just t, _) ->
+        case label of
+          FEL.LABEL_REQUIRED -> (name, marshalPrimitive name)
+          FEL.LABEL_OPTIONAL -> (name, marshalMaybePrimitive name)
+          FEL.LABEL_REPEATED -> (name, marshalListPrimitive name)
+      (_, Just tn) ->
+        let
+          (_,typename) = splitTypePath . toText $ tn
+          qualifierList = getElmTypeQualifier scope $ toText tn
+          qualifier = T.intercalate (T.pack ".") qualifierList
+        in
+          case label of
+            FEL.LABEL_REQUIRED -> (name, marshalFunc qualifier typename name)
+            FEL.LABEL_OPTIONAL -> (name, marshalMaybeFunc qualifier typename name)
+            FEL.LABEL_REPEATED -> (name, marshalListFunc qualifier typename name)
+
+
+genNativeMarshal :: Text -> Scope -> DescriptorProto -> Text
+genNativeMarshal packagename scope descriptor =
   let
     typename :: Text
     typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
-  in nativeRecordMarshal typename
+
+    fieldDescriptors :: [FieldDescriptorProto]
+    fieldDescriptors = toList $ D.field descriptor
+
+    standaloneFields :: [FieldDescriptorProto]
+    standaloneFields = filter (\fd -> FE.oneof_index fd == Nothing) fieldDescriptors
+
+    standaloneFieldMarshalers :: [(Text, Text -> Text)]
+    standaloneFieldMarshalers = genNativeFieldMarshal scope <$> standaloneFields
+
+    -- TODO check if the typename has some other qualifier
+  in nativeRecordMarshal packagename typename standaloneFieldMarshalers
 
 genNativeFieldUnmarshal :: Scope -> FieldDescriptorProto -> (Text, Text -> Text)
 genNativeFieldUnmarshal scope fieldDescriptor =
@@ -153,9 +183,6 @@ genNativeUnmarshal scope descriptor =
 
     fieldDescriptors :: [FieldDescriptorProto]
     fieldDescriptors = toList $ D.field descriptor
-
-    scope :: Scope
-    scope = []
 
     standaloneFields :: [FieldDescriptorProto]
     standaloneFields = filter (\fd -> FE.oneof_index fd == Nothing) fieldDescriptors
@@ -211,15 +238,15 @@ genNativeModule outputPrefix protoModulename filename protoContents fileDescript
     encodeValues :: Text
     encodeValues = T.concat $ do
       typename <- typenames
-      valueBuilder <- [nativeEncode, nativeDecode]
-      return $ valueBuilder protoModulename typename
+      valueBuilder <- [nativeEncode, nativeDecode packagename]
+      return $ valueBuilder typename
 
     marshalValues :: Text
     marshalValues = T.concat $ do
       descriptor <- descriptors
       let typename = toTextE "Didn't find a name for the descriptor" . D.name $ descriptor
-      valueBuilder <- [genNativeMarshal, genNativeUnmarshal]
-      return $ valueBuilder [M.empty] descriptor
+      valueBuilder <- [genNativeMarshal packagename, genNativeUnmarshal]
+      return $ valueBuilder [] descriptor
 
     values :: Text
     values = T.append encodeValues marshalValues

@@ -7,6 +7,8 @@ import qualified Data.Text as T
 import Data.Text                (Text)
 import NeatInterpolation        (text)
 
+import Utils
+
 nativeModule prefix protoModulename filename packagename modulename protoSource moduleValues moduleExports =
   [text|
     Elm.Native.${prefix} = Elm.Native.${prefix} || {};
@@ -19,6 +21,11 @@ nativeModule prefix protoModulename filename packagename modulename protoSource 
         return _elm.Native.${prefix}.${modulename}.values;
       }
 
+      // reference to the elm module - don't build (circular dep)
+      // var ${modulename} = Elm.${prefix}.${modulename}.make(_elm);
+      var _elm_module = _elm.${prefix}.${modulename};
+
+      // reference to the protobuf generated JavaScript
       var Proto = Elm.Native.${protoModulename}.Internal.Proto.make(_elm);
 
       ${moduleValues}
@@ -34,67 +41,154 @@ nativeModuleExport valuename =
     ${valuename}: ${valuename},
   |]
 
-nativeDecode protoModulename typename =
+nativeDecode packagename typename =
   [text|
     var decode${typename} = function(blob) {
-      return ${protoModulename}.${typename}.deserializeBinary(blob);
+      return Proto.${packagename}.${typename}.deserializeBinary(blob);
     }
   |]
 
-nativeEncode protoModulename typename =
+nativeEncode typename =
   [text|
     var encode${typename} = function(message_${typename}) {
       return message_${typename}.serializeBinary()
     }
   |]
 
-nativeRecordMarshal typename =
-  [text|
-    var marshal${typename} = function(value_${typename}) {
-      var contract_${typename} = new Proto.${typename}();
-      throw "Not implemented - native record marshal";
-    }
-  |]
+marshalPrimitive :: Text -> (Text -> Text)
+marshalPrimitive fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      contract_${typename}.${setMethod}(value_${typename}.${fieldName});
+    |]
+
+marshalMaybePrimitive :: Text -> (Text -> Text)
+marshalMaybePrimitive fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - optional field marshaling (${fieldName})";
+      contract_${typename}.${setMethod}(value_${typename}.${fieldName});
+    |]
+
+marshalListPrimitive :: Text -> (Text -> Text)
+marshalListPrimitive fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - repeated field marshaling (${fieldName})";
+      contract_${typename}.${setMethod}(value_${typename}.${fieldName});
+    |]
+
+marshalFunc :: Text -> Text -> Text -> (Text -> Text)
+marshalFunc qualifier typename fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      contract_${typename}.${setMethod}(tmp_${fieldName});
+    |]
+
+marshalMaybeFunc :: Text -> Text -> Text -> (Text -> Text)
+marshalMaybeFunc qualifier typename fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - optional field marshaling (${fieldName})";
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      contract_${typename}.${setMethod}(tmp_${fieldName});
+    |]
+
+marshalListFunc :: Text -> Text -> Text -> (Text -> Text)
+marshalListFunc qualifier typename fieldName = \typename ->
+  let
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - repeated field marshaling (${fieldName})";
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      contract_${typename}.${setMethod}(tmp_${fieldName});
+    |]
+
+nativeRecordMarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text
+nativeRecordMarshal packagename typename fields =
+  let
+    makeFieldUnmarshalStatement field = snd field $ typename
+    fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
+    constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields
+    applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
+  in
+    [text|
+      var marshal${typename} = function(value_${typename}) {
+        var contract_${typename} = new Proto.${packagename}.${typename}();
+        ${fieldUnmarshalStatements}
+        return contract_${typename};
+      }
+    |]
 
 unmarshalPrimitive :: Text -> (Text -> Text)
 unmarshalPrimitive fieldName = \contractValueName ->
-  [text|
-    var ${fieldName} = ${contractValueName}.${fieldName}
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      var ${fieldName} = ${contractValueName}.${getter}();
+    |]
 
 unmarshalMaybePrimitive :: Text -> (Text -> Text)
 unmarshalMaybePrimitive fieldName = \contractValueName ->
-  [text|
-    throw "Not implemented - optional field unmarshaling (${fieldName})";
-    var ${fieldName} = ${contractValueName}.${fieldName}
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - optional field unmarshaling (${fieldName})";
+      var ${fieldName} = ${contractValueName}.${getter}();
+    |]
 
 unmarshalListPrimitive :: Text -> (Text -> Text)
 unmarshalListPrimitive fieldName = \contractValueName ->
-  [text|
-    throw "Not implemented - repeated field unmarshaling (${fieldName})";
-    var ${fieldName} = ${contractValueName}.${fieldName}
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - repeated field unmarshaling (${fieldName})";
+      var ${fieldName} = ${contractValueName}.${getter}();
+    |]
 
 unmarshalFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalFunc qualifier typename fieldName = \contractValueName ->
-  [text|
-    var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName})
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+    |]
 
 unmarshalMaybeFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalMaybeFunc qualifier typename fieldName = \contractValueName ->
-  [text|
-    throw "Not implemented - optional field unmarshaling (${fieldName})";
-    var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName})
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - optional field unmarshaling (${fieldName})";
+      var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+    |]
 
 unmarshalListFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalListFunc qualifier typename fieldName = \contractValueName ->
-  [text|
-    throw "Not implemented - repeated field unmarshaling (${fieldName})";
-    var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${fieldName})
-  |]
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+  in
+    [text|
+      throw "Not implemented - repeated field unmarshaling (${fieldName})";
+      var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+    |]
 
 nativeOneofUnmarshal :: Text -> (Text -> Text)
 nativeOneofUnmarshal oneofFieldName = \contractValueName ->
@@ -107,22 +201,17 @@ nativeMessageUnmarshal :: Text -> [(Text, Text -> Text)] -> Text
 nativeMessageUnmarshal typename fields =
   let
     contractValueName = T.concat [ typename, T.pack "_contract" ]
-    makeFieldUnmarshalStatement field =
-      let
-        unmarshaler = snd field $ contractValueName
-      in
-        [text|
-          ${unmarshaler}
-        |]
+    makeFieldUnmarshalStatement field = snd field $ contractValueName
     fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
     constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields
     applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
-  in [text|
-    var unmarshal${typename} = function(${contractValueName}) {
-      ${fieldUnmarshalStatements}
-      return ${applyN}(${typename}${constructorArguments});
-    }
-  |]
+  in
+    [text|
+      var unmarshal${typename} = function(${contractValueName}) {
+        ${fieldUnmarshalStatements}
+        return ${applyN}(_elm_module.values.${typename}${constructorArguments});
+      }
+    |]
 
 elmModule prefix modulename moduleExports dependencyImports types contractTypeDefs modulevalues comment =
   [text|
