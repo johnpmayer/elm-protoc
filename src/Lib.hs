@@ -339,7 +339,7 @@ genElmField scope fieldDescriptor =
 
     in (name, typename)
 
-genOneofType :: Scope -> Text -> OneofDescriptorProto -> [FieldDescriptorProto] -> Text
+genOneofType :: Scope -> Text -> OneofDescriptorProto -> [FieldDescriptorProto] -> (Text, Text)
 genOneofType scope baseTypename oneofDescriptor fieldDescriptors =
   let
     oneofSubTypeName = toTextE "Didn't find a name for the oneof" . O.name $ oneofDescriptor
@@ -350,9 +350,9 @@ genOneofType scope baseTypename oneofDescriptor fieldDescriptors =
       case oneofFields of
         [] -> error "Sum type with no fields?"
         _ -> T.concat $ zipWith (elmSumField typename) oneofPrefixes oneofFields
-  in elmSumTypeDef typename fields
+  in (typename, elmSumTypeDef typename fields)
 
-genElmTypeDefs :: Scope -> DescriptorProto -> Text
+genElmTypeDefs :: Scope -> DescriptorProto -> ([Text], Text)
 genElmTypeDefs scope descriptor =
   let
     typename :: Text
@@ -391,8 +391,13 @@ genElmTypeDefs scope descriptor =
         groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
       in zip oneofDescriptors groupedOneofFields
 
-    oneofTypeDefs :: Text
-    oneofTypeDefs = T.concat $ map (uncurry $ genOneofType scope typename) oneofTypes
+    --(oneofTypeNames, oneofTypeDefs) :: ([Text], Text)
+    (oneofTypeNames, oneofTypeDefs) = 
+      let
+        oneofTypeNameAndDefs = map (uncurry $ genOneofType scope typename) oneofTypes
+        names = map fst oneofTypeNameAndDefs
+        defs = T.concat $ map snd oneofTypeNameAndDefs
+      in (names, defs)
 
     elmFields :: [(Text, Text)]
     elmFields = (genElmField scope <$> standaloneFields) ++ oneofRecordFields
@@ -405,7 +410,7 @@ genElmTypeDefs scope descriptor =
       case elmFields of
         [] -> T.pack "{"
         _ -> T.concat $ zipWith elmRecordField recordPrefixes elmFields
-  in elmRecordTypeDef typename oneofTypeDefs fields
+  in (oneofTypeNames, elmRecordTypeDef typename oneofTypeDefs fields)
 
 genElmModule :: Text -> FileDescriptorProto -> [Text] -> ByteString
 genElmModule outputPrefix fileDescriptor dependencyModulenames =
@@ -429,7 +434,7 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
     exportPrefixes = T.pack "(" : repeat (T.pack ",")
 
     exports :: Text
-    exports = T.concat . zipWith elmExport exportPrefixes $ concat [typenames, contractTypeExports, valueExports]
+    exports = T.concat . zipWith elmExport exportPrefixes $ concat [typenames, oneofTypenameExports, contractTypeExports, valueExports]
 
     contractTypeExports :: [Text]
     contractTypeExports = (\x -> T.append x (T.pack "Contract")) <$> typenames
@@ -444,8 +449,16 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
     scope :: Scope
     scope = dependencyScope
 
-    typeDefs :: Text
-    typeDefs = T.concat $ genElmTypeDefs scope <$> descriptors
+    --(oneofTypenames, typeDefs) :: Text
+    (oneofTypenames, typeDefs) = 
+      let
+        typeOneofNamesAndDefs = genElmTypeDefs scope <$> descriptors
+        allOneofNames = concat $ map fst typeOneofNamesAndDefs 
+        defs = T.concat $ map snd typeOneofNamesAndDefs 
+      in (allOneofNames, defs)
+
+    oneofTypenameExports :: [Text]
+    oneofTypenameExports = (`T.append` (T.pack "(..)")) <$> oneofTypenames
 
     contractTypes :: Text
     contractTypes = T.concat $ elmContractTypeDef <$> typenames
