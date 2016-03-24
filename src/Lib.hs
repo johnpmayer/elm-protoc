@@ -138,8 +138,46 @@ genNativeMarshal packagename scope descriptor =
     standaloneFieldMarshalers :: [(Text, Text -> Text)]
     standaloneFieldMarshalers = genNativeFieldMarshal scope <$> standaloneFields
 
+    oneofFields :: [(Int32, FieldDescriptorProto)]
+    oneofFields =
+      let
+        accum fd xs =
+          case FE.oneof_index fd of
+            Nothing -> xs
+            Just index -> (index, fd) : xs
+      in foldr accum [] fieldDescriptors
+
+    oneofDescriptors :: [OneofDescriptorProto]
+    oneofDescriptors = toList $ D.oneof_decl descriptor
+
+    oneofTypes :: [(OneofDescriptorProto, [FieldDescriptorProto])]
+    oneofTypes =
+      let
+        groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
+      in zip oneofDescriptors groupedOneofFields
+
+    oneofData :: [(Text, [(Int32, Text, Text)])]
+    oneofData = do
+      oneofType <- oneofTypes
+      let oneofRecordFieldName = toTextE "Didn't find name for the oneof" . O.name . fst $ oneofType
+      let oneofCases = error "oneofCases"
+      return $ (oneofRecordFieldName, oneofCases)
+
+    makeOneofCaseMarshalers :: Text
+    makeOneofCaseMarshalers = error "make case marshalers"
+
+    oneofFieldMarshalers :: Text
+    oneofFieldMarshalers = 
+      let
+        marshalers :: [Text]
+        marshalers = do
+          oneofData1 <- oneofData
+          let oneofCaseMarshalers = error "oneofCaseMarshalers"
+          return $ nativeOneofMarshal typename (fst oneofData1) oneofCaseMarshalers
+      in T.concat marshalers
+
     -- TODO check if the typename has some other qualifier
-  in nativeRecordMarshal packagename typename standaloneFieldMarshalers
+  in nativeRecordMarshal packagename typename standaloneFieldMarshalers oneofFieldMarshalers
 
 genNativeFieldUnmarshal :: Scope -> FieldDescriptorProto -> (Text, Text -> Text)
 genNativeFieldUnmarshal scope fieldDescriptor =

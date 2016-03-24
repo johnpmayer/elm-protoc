@@ -4,6 +4,7 @@ module Templates where
 
 import qualified Data.Text as T
 
+import Data.Int                 (Int32)
 import Data.Text                (Text)
 import NeatInterpolation        (text)
 
@@ -90,7 +91,7 @@ marshalFunc qualifier typename fieldName = \typename ->
     setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
   in
     [text|
-      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName});
       contract_${typename}.${setMethod}(tmp_${fieldName});
     |]
 
@@ -101,7 +102,7 @@ marshalMaybeFunc qualifier typename fieldName = \typename ->
   in
     [text|
       throw "Not implemented - optional field marshaling (${fieldName})";
-      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName});
       contract_${typename}.${setMethod}(tmp_${fieldName});
     |]
 
@@ -112,22 +113,48 @@ marshalListFunc qualifier typename fieldName = \typename ->
   in
     [text|
       throw "Not implemented - repeated field marshaling (${fieldName})";
-      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName})
+      var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${fieldName});
       contract_${typename}.${setMethod}(tmp_${fieldName});
     |]
 
-nativeRecordMarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text
-nativeRecordMarshal packagename typename fields =
+nativeOneofCaseMarshal :: Text -> Text -> Text -> Text -> Text
+nativeOneofCaseMarshal qualifier typename oneofRecordFieldName fieldName = 
   let
-    makeFieldUnmarshalStatement field = snd field $ typename
-    fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
+    elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      case "${elmOneofCaseName}":
+        var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${oneofRecordFieldName}._0);
+        contract_${typename}.${setMethod}(tmp_${fieldName});
+    |]
+
+nativeOneofMarshal :: Text -> Text -> Text -> Text
+nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers = 
+  let
+    a = 1
+  in 
+    [text|
+      switch (value_${typename}.${oneofRecordFieldName}.ctor) {
+      ${oneofCaseMarshalers}
+      default:
+        throw "Not implemented - marshal oneof (${typename}.${oneofRecordFieldName})";
+      }
+    |]
+
+nativeRecordMarshal :: Text -> Text -> [(Text, Text -> Text)] -> Text -> Text
+nativeRecordMarshal packagename typename fields oneofFieldMarshalers =
+  let
+    makeFieldMarshalStatement field = snd field $ typename
+    fieldMarshalStatements = T.unlines $ fmap makeFieldMarshalStatement fields
     constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields
     applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
   in
     [text|
       var marshal${typename} = function(value_${typename}) {
         var contract_${typename} = new Proto.${packagename}.${typename}();
-        ${fieldUnmarshalStatements}
+        ${fieldMarshalStatements}
+        ${oneofFieldMarshalers}
         return contract_${typename};
       }
     |]
