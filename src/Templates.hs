@@ -117,23 +117,24 @@ marshalListFunc qualifier typename fieldName = \typename ->
       contract_${typename}.${setMethod}(tmp_${fieldName});
     |]
 
-nativeOneofCaseMarshal :: Text -> Text -> Text -> Text -> Text
-nativeOneofCaseMarshal qualifier typename oneofRecordFieldName fieldName = 
+nativeOneofCaseMarshal :: Text -> Text -> Text -> Text -> Text -> Text
+nativeOneofCaseMarshal qualifier typename oneofRecordFieldName fieldName fieldTypeName =
   let
     elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
     setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
   in
     [text|
       case "${elmOneofCaseName}":
-        var tmp_${fieldName} = ${qualifier}marshal${typename}(value_${typename}.${oneofRecordFieldName}._0);
+        var tmp_${fieldName} = ${qualifier}marshal${fieldTypeName}(value_${typename}.${oneofRecordFieldName}._0);
         contract_${typename}.${setMethod}(tmp_${fieldName});
+        break;
     |]
 
 nativeOneofMarshal :: Text -> Text -> Text -> Text
-nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers = 
+nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers =
   let
     a = 1
-  in 
+  in
     [text|
       switch (value_${typename}.${oneofRecordFieldName}.ctor) {
       ${oneofCaseMarshalers}

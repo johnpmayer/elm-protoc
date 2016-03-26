@@ -156,24 +156,34 @@ genNativeMarshal packagename scope descriptor =
         groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
       in zip oneofDescriptors groupedOneofFields
 
-    oneofData :: [(Text, [(Int32, Text, Text)])]
+    oneofData :: [(Text, [(Text, Text)])]
     oneofData = do
       oneofType <- oneofTypes
       let oneofRecordFieldName = toTextE "Didn't find name for the oneof" . O.name . fst $ oneofType
-      let oneofCases = error "oneofCases"
+      let oneofCases =
+            do
+              fieldDescriptor <- snd oneofType
+              let fieldName = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
+                  typename =
+                    case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+                      (Just t, _) -> genPrimitiveTypeName t
+                      (_, Just tn) -> toText tn
+              return (fieldName, typename)
       return $ (oneofRecordFieldName, oneofCases)
 
-    makeOneofCaseMarshalers :: Text
-    makeOneofCaseMarshalers = error "make case marshalers"
-
     oneofFieldMarshalers :: Text
-    oneofFieldMarshalers = 
+    oneofFieldMarshalers =
       let
         marshalers :: [Text]
         marshalers = do
           oneofData1 <- oneofData
-          let oneofCaseMarshalers = error "oneofCaseMarshalers"
-          return $ nativeOneofMarshal typename (fst oneofData1) oneofCaseMarshalers
+          let oneofRecordFieldName = fst oneofData1
+          let oneofCaseMarshalers = T.concat $
+                do
+                  (fieldName, fieldTypeName) <- snd oneofData1
+                  let (qualifier, justFieldTypename) = splitTypePath fieldTypeName
+                  return $ nativeOneofCaseMarshal (T.intercalate "." qualifier) typename oneofRecordFieldName fieldName justFieldTypename
+          return $ nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers
       in T.concat marshalers
 
     -- TODO check if the typename has some other qualifier
@@ -430,7 +440,7 @@ genElmTypeDefs scope descriptor =
       in zip oneofDescriptors groupedOneofFields
 
     --(oneofTypeNames, oneofTypeDefs) :: ([Text], Text)
-    (oneofTypeNames, oneofTypeDefs) = 
+    (oneofTypeNames, oneofTypeDefs) =
       let
         oneofTypeNameAndDefs = map (uncurry $ genOneofType scope typename) oneofTypes
         names = map fst oneofTypeNameAndDefs
@@ -488,11 +498,11 @@ genElmModule outputPrefix fileDescriptor dependencyModulenames =
     scope = dependencyScope
 
     --(oneofTypenames, typeDefs) :: Text
-    (oneofTypenames, typeDefs) = 
+    (oneofTypenames, typeDefs) =
       let
         typeOneofNamesAndDefs = genElmTypeDefs scope <$> descriptors
-        allOneofNames = concat $ map fst typeOneofNamesAndDefs 
-        defs = T.concat $ map snd typeOneofNamesAndDefs 
+        allOneofNames = concat $ map fst typeOneofNamesAndDefs
+        defs = T.concat $ map snd typeOneofNamesAndDefs
       in (allOneofNames, defs)
 
     oneofTypenameExports :: [Text]
