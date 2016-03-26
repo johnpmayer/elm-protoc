@@ -139,7 +139,7 @@ nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers =
       switch (value_${typename}.${oneofRecordFieldName}.ctor) {
       ${oneofCaseMarshalers}
       default:
-        throw "Not implemented - marshal oneof (${typename}.${oneofRecordFieldName})";
+        throw new Error("Default case - marshal oneof (${typename}.${oneofRecordFieldName})");
       }
     |]
 
@@ -222,7 +222,7 @@ nativeOneofUnmarshal :: Text -> (Text -> Text)
 nativeOneofUnmarshal oneofFieldName = \contractValueName ->
   [text|
     // something with ${contractValueName}.${oneofFieldName} ???
-    throw "Not implemented - oneof field unmarshaling (${oneofFieldName})"
+    throw new Error("Not implemented - oneof field unmarshaling (${oneofFieldName})");
   |]
 
 nativeMessageUnmarshal :: Text -> [(Text, Text -> Text)] -> Text
