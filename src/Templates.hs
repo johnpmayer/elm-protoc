@@ -222,11 +222,13 @@ nativeOneofCaseUnmarshal :: Text -> Text -> Text -> Text -> Text -> Text -> Text
 nativeOneofCaseUnmarshal qualifier typename oneofRecordFieldName fieldName fieldNumber fieldTypeName =
   let
     elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
-    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
   in
     [text|
-      // something with ${elmOneofCaseName} or ${fieldNumber}
-      // throw new Error("Not implemented - oneof field unmarshaling (${oneofRecordFieldName})");
+      case ${fieldNumber}:
+        var tmp_${fieldTypeName} = ${qualifier}unmarshal${fieldTypeName}(${typename}_contract.${getter}());
+        ${oneofRecordFieldName} = _elm_module.values.${elmOneofCaseName}(tmp_${fieldTypeName});
+        break;
     |]
 
 nativeOneofUnmarshal :: Text -> Text -> Text -> (Text -> Text)
@@ -235,7 +237,6 @@ nativeOneofUnmarshal typename oneofRecordFieldName oneofCaseUnmarshalers = \cont
     getter = T.concat [T.pack "get", toTitlePreserving oneofRecordFieldName, T.pack "Case"]
   in
     [text|
-      // something with ${contractValueName}.${oneofRecordFieldName} ???
       var ${oneofRecordFieldName};
       switch (${contractValueName}.${getter}()) {
         ${oneofCaseUnmarshalers}
@@ -250,13 +251,17 @@ nativeMessageUnmarshal typename fields =
     contractValueName = T.concat [ typename, T.pack "_contract" ]
     makeFieldUnmarshalStatement field = snd field $ contractValueName
     fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
-    constructorArguments = T.concat $ fmap (((T.pack ", ") `T.append`) . fst) fields
+    constructorArguments = T.intercalate ", " . fmap fst $ fields
     applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
+    returnExpression = case length fields of
+      0 -> [text| _elm_module.values.${typename} |]
+      1 -> [text| _elm_module.values.${typename}(${constructorArguments}) |]
+      _ -> [text| ${applyN}(_elm_module.values.${typename}, ${constructorArguments}) |]
   in
     [text|
       var unmarshal${typename} = function(${contractValueName}) {
         ${fieldUnmarshalStatements}
-        return ${applyN}(_elm_module.values.${typename}${constructorArguments});
+        return ${returnExpression};
       }
     |]
 
