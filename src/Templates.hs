@@ -218,12 +218,31 @@ unmarshalListFunc qualifier typename fieldName = \contractValueName ->
       var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
     |]
 
-nativeOneofUnmarshal :: Text -> (Text -> Text)
-nativeOneofUnmarshal oneofFieldName = \contractValueName ->
-  [text|
-    // something with ${contractValueName}.${oneofFieldName} ???
-    throw new Error("Not implemented - oneof field unmarshaling (${oneofFieldName})");
-  |]
+nativeOneofCaseUnmarshal :: Text -> Text -> Text -> Text -> Text -> Text -> Text
+nativeOneofCaseUnmarshal qualifier typename oneofRecordFieldName fieldName fieldNumber fieldTypeName =
+  let
+    elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
+    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+  in
+    [text|
+      // something with ${elmOneofCaseName} or ${fieldNumber}
+      // throw new Error("Not implemented - oneof field unmarshaling (${oneofRecordFieldName})");
+    |]
+
+nativeOneofUnmarshal :: Text -> Text -> Text -> (Text -> Text)
+nativeOneofUnmarshal typename oneofRecordFieldName oneofCaseUnmarshalers = \contractValueName ->
+  let
+    getter = T.concat [T.pack "get", toTitlePreserving oneofRecordFieldName, T.pack "Case"]
+  in
+    [text|
+      // something with ${contractValueName}.${oneofRecordFieldName} ???
+      var ${oneofRecordFieldName};
+      switch (${contractValueName}.${getter}()) {
+        ${oneofCaseUnmarshalers}
+        default:
+          throw new Error("Default case - unmarshal oneof (${typename}.${oneofRecordFieldName})");
+      }
+    |]
 
 nativeMessageUnmarshal :: Text -> [(Text, Text -> Text)] -> Text
 nativeMessageUnmarshal typename fields =

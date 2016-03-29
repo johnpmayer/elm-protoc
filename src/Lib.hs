@@ -216,13 +216,6 @@ genNativeFieldUnmarshal scope fieldDescriptor =
             FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifier typename name)
             FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifier typename name)
 
-genNativeOneofUnmarshal :: Scope -> OneofDescriptorProto -> [FieldDescriptorProto] -> (Text, Text -> Text)
-genNativeOneofUnmarshal scope oneofDescriptor fieldDescriptors =
-  let
-    oneofFieldName :: Text
-    oneofFieldName = toTextE "Didn't find a name for the oneof" . O.name $ oneofDescriptor
-  in (oneofFieldName, nativeOneofUnmarshal oneofFieldName)
-
 genNativeUnmarshal :: Scope -> DescriptorProto -> Text
 genNativeUnmarshal scope descriptor =
   let
@@ -256,10 +249,34 @@ genNativeUnmarshal scope descriptor =
         groupedOneofFields = map (map snd) $ groupByKey fst oneofFields
       in zip oneofDescriptors groupedOneofFields
 
-    oneofUnmarshalers :: [(Text, Text -> Text)]
-    oneofUnmarshalers = uncurry (genNativeOneofUnmarshal scope) <$> oneofTypes
+    oneofData :: [(Text, [(Text, Int32, Text)])]
+    oneofData = do
+      oneofType <- oneofTypes
+      let oneofRecordFieldName = toTextE "Didn't find name for the oneof" . O.name . fst $ oneofType
+      let oneofCases =
+            do
+              fieldDescriptor <- snd oneofType
+              let fieldName = toTextE "Didn't find a name for the field descriptor" . FE.name $ fieldDescriptor
+                  fieldNumber = fromMaybe (error "Didn't find a number for the field descriptor") . FE.number $ fieldDescriptor
+                  typename =
+                    case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+                      (Just t, _) -> genPrimitiveTypeName t
+                      (_, Just tn) -> toText tn
+              return (fieldName, fieldNumber, typename)
+      return $ (oneofRecordFieldName, oneofCases)
 
-  in nativeMessageUnmarshal typename (standaloneFieldUnmarshalers ++ oneofUnmarshalers)
+    oneofFieldUnmarshalers :: [(Text, Text -> Text)]
+    oneofFieldUnmarshalers = do
+      oneofData1 <- oneofData
+      let oneofRecordFieldName = fst oneofData1
+      let oneofCaseUnmarshalers = T.concat $
+            do
+              (fieldName, fieldNumber, fieldTypeName) <- snd oneofData1
+              let (qualifier, justFieldTypename) = splitTypePath fieldTypeName
+              return $ nativeOneofCaseUnmarshal (T.intercalate "." qualifier) typename oneofRecordFieldName fieldName (T.pack . show $ fieldNumber) justFieldTypename
+      return $ (oneofRecordFieldName, nativeOneofUnmarshal typename oneofRecordFieldName oneofCaseUnmarshalers)
+
+  in nativeMessageUnmarshal typename (standaloneFieldUnmarshalers ++ oneofFieldUnmarshalers)
 
 
 getDependencyScope :: Text -> [Text] -> Scope
