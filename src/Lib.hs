@@ -58,8 +58,8 @@ loadProtoFile filename =
       Left parseError -> error $ "Failed to parse " ++ filename ++ show parseError
       Right fileDescriptor -> (protoContents,fileDescriptor)
 
-parseProtoFile :: String -> FilePath -> FilePath -> IO ()
-parseProtoFile outputPrefix filename outputDir =
+parseProtoFile :: String -> String -> String -> FilePath -> FilePath -> IO ()
+parseProtoFile owner project outputPrefix filename outputDir =
   do
     (protoContents, fileDescriptor) <- loadProtoFile filename
     let dependencyFilenames = T.unpack . toText <$> (toList $ F.dependency fileDescriptor)
@@ -84,7 +84,7 @@ parseProtoFile outputPrefix filename outputDir =
     let specFile = specDir </> T.unpack packagename <.> "spec"
     --let internalModule
     putStrLn $ "Writing " ++ nativeFile
-    writeFile nativeFile $ genNativeModule (T.pack outputPrefix) (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
+    writeFile nativeFile $ genNativeModule (T.pack owner) (T.pack project) (T.pack outputPrefix) (T.pack outputPrefix) (takeFileName filename) protoContents fileDescriptor dependencyModulenames
     putStrLn $ "Writing " ++ elmFile
     writeFile elmFile $ genElmModule (T.pack outputPrefix) fileDescriptor dependencyModulenames
     Prelude.writeFile specFile . groom $ fileDescriptor
@@ -285,8 +285,8 @@ getDependencyScope prefix dependencyModuleNames =
     makePackageRef x = (x, PackageReference . FQN $ T.concat [ prefix, T.pack ".", x ])
   in [M.fromList . fmap makePackageRef $ fmap toTitlePreserving dependencyModuleNames]
 
-genNativeModule :: Text -> Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
-genNativeModule outputPrefix protoModulename filename protoContents fileDescriptor dependencyModuleNames =
+genNativeModule :: Text -> Text -> Text -> Text -> FilePath -> ByteString -> FileDescriptorProto -> [Text] -> ByteString
+genNativeModule owner project outputPrefix protoModulename filename protoContents fileDescriptor dependencyModuleNames =
   let
     packagename :: Text
     packagename = toTextE "Did not find a package name in the .proto file" . F.package $ fileDescriptor
@@ -324,7 +324,7 @@ genNativeModule outputPrefix protoModulename filename protoContents fileDescript
 
     protoSource :: Text
     protoSource = toStrict . decodeUtf8 $ protoContents
-  in encodeUtf8 . fromStrict $ nativeModule outputPrefix protoModulename (T.pack filename) packagename modulename protoSource values exports
+  in encodeUtf8 . fromStrict $ nativeModule owner project outputPrefix protoModulename (T.pack filename) packagename modulename protoSource values exports
 
 genPrimitiveTypeName :: FET.Type -> Text
 genPrimitiveTypeName t =

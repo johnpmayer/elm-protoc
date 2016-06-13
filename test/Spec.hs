@@ -15,7 +15,7 @@ protoModulename :: String
 protoModulename = "ElmProto"
 
 main :: IO ()
-main = do 
+main = do
   examples <- (map (examplesDir </>) . filter (((==) ".proto") . takeExtension)) <$> getDirectoryContents examplesDir
   putStrLn . show $ examples
-  forM_ examples $ \example -> parseProtoFile protoModulename example outputDir
+  forM_ examples $ \example -> parseProtoFile "johnpmayer" "examples" protoModulename example outputDir

@@ -169,35 +169,25 @@ copyProtobufJsIncludes = do
   binaryFilenames <- filter nonTestJsFile <$> getDirectoryContents protobuf_js_binary_include_dir
   forM_ binaryFilenames $ copyFileInDirectory protobuf_js_binary_include_dir temp_protobuf_js_include_dir
 
-addNativeModuleWrapper :: String -> String -> String
-addNativeModuleWrapper prefix content =
+addNativeModuleWrapper :: String -> String -> String -> String -> String
+addNativeModuleWrapper owner project prefix content =
   let
-    proto_modulename = T.pack $ "Native." ++ prefix
+    ownerT = T.pack owner
+    projectT = T.pack project
+    proto_modulename = T.pack $ "Native_" ++ prefix
     contentT = T.pack content
-    --prefixT = T.pack prefix
   in
     T.unpack $ [text|
-      Elm.Native = Elm.Native || {};
-      Elm.${proto_modulename} = Elm.${proto_modulename} || {};
-      Elm.${proto_modulename}.Internal = Elm.${proto_modulename}.Internal || {};
-      Elm.${proto_modulename}.Internal.Proto = Elm.${proto_modulename}.Internal.Proto || {};
-      Elm.${proto_modulename}.Internal.Proto.make = function(_elm) {
-        "use strict";
-        _elm.${proto_modulename} = _elm.${proto_modulename} || {};
-        _elm.${proto_modulename}.Internal = _elm.${proto_modulename}.Internal || {};
-        _elm.${proto_modulename}.Internal.Proto = _elm.${proto_modulename}.Internal.Proto || {};
-        if (_elm.${proto_modulename}.Internal.Proto.values) {
-          return _elm.${proto_modulename}.Internal.Proto.values;
-        }
+      var _${ownerT}$${projectT}$${proto_modulename}_Internal_Proto = function(_elm) {
 
         ${contentT}
 
-        return _elm.${proto_modulename}.Internal.Proto.values = proto;
+        return proto;
       }
     |]
 
-runClosureCompiler :: FilePath -> String -> IO ()
-runClosureCompiler outputDir prefix = do
+runClosureCompiler :: FilePath -> String -> String -> String -> IO ()
+runClosureCompiler outputDir owner project prefix = do
   putStrLn "Minifying protoc generated code & dependencies"
   compiler_output <- readProcess "java"
     [ "-jar", closure_compiler_jar
@@ -207,7 +197,7 @@ runClosureCompiler outputDir prefix = do
     , temp_protobuf_js_include_dir
     , closure_library_include_dir
     ] ""
-  let nativeModuleSrc = addNativeModuleWrapper prefix compiler_output
+  let nativeModuleSrc = addNativeModuleWrapper owner project prefix compiler_output
   ensureNativeOutputDirExists outputDir prefix
   let nativeOutputFile = outputDir </> "Native" </> prefix </> "Internal" </> "Proto" <.> "js"
   putStrLn $ "Writing proto JS to: " ++ nativeOutputFile

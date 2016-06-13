@@ -10,31 +10,23 @@ import NeatInterpolation        (text)
 
 import Utils
 
-nativeModule prefix protoModulename filename packagename modulename protoSource moduleValues moduleExports =
-  [text|
-    Elm.Native.${prefix} = Elm.Native.${prefix} || {};
-    Elm.Native.${prefix}.${modulename} = Elm.Native.${prefix}.${modulename} || {};
-    Elm.Native.${prefix}.${modulename}.make = function(_elm) {
-      "use strict";
-      _elm.Native.${prefix} = _elm.Native.${prefix} || {};
-      _elm.Native.${prefix}.${modulename} = _elm.Native.${prefix}.${modulename} || {};
-      if (_elm.Native.${prefix}.${modulename}.values) {
-        return _elm.Native.${prefix}.${modulename}.values;
-      }
+nativeModule owner project prefix protoModulename filename packagename modulename protoSource moduleValues moduleExports =
+  let dollar = T.pack "$"
+  in [text|
+    var _${owner}${dollar}${project}${dollar}Native_${prefix}_${modulename} = function() {
 
-      // reference to the elm module - don't build (circular dep)
-      // var ${modulename} = Elm.${prefix}.${modulename}.make(_elm);
-      var _elm_module = _elm.${prefix}.${modulename};
+      // reference to the elm module - can't do this (circular dep)
+      // var _elm_module = _${owner}$${project}$${prefix}_${modulename};
 
       // reference to the protobuf generated JavaScript
-      var Proto = Elm.Native.${protoModulename}.Internal.Proto.make(_elm);
+      var Proto = _${owner}${dollar}${project}${dollar}Native_${protoModulename}_Internal_Proto;
 
       ${moduleValues}
 
-      return _elm.Native.${prefix}.${modulename}.values = {
+      return {
         ${moduleExports}
       }
-    }
+    }();
   |]
 
 nativeModuleExport valuename =
@@ -272,10 +264,10 @@ elmModule prefix modulename moduleExports dependencyImports types contractTypeDe
      - ${comment}
      -}
 
-    module ${prefix}.${modulename}
-      ${moduleExports} ) where
+    module ${prefix}.${modulename} exposing
+      ${moduleExports} )
 
-    import Opaque exposing (Buffer)
+    import Binary.ArrayBuffer exposing (ArrayBuffer)
 
     ${dependencyImports}
 
@@ -330,13 +322,13 @@ elmContractTypeDef typename =
 
 elmDecode prefix modulename typename =
   [text|
-    decode${typename} : Buffer -> ${typename}Contract
+    decode${typename} : ArrayBuffer -> ${typename}Contract
     decode${typename} = Native.${prefix}.${modulename}.decode${typename}
   |]
 
 elmEncode prefix modulename typename =
   [text|
-    encode${typename} : ${typename}Contract -> Buffer
+    encode${typename} : ${typename}Contract -> ArrayBuffer
     encode${typename} = Native.${prefix}.${modulename}.encode${typename}
   |]
 
