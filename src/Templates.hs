@@ -51,7 +51,7 @@ nativeEncode typename =
 marshalPrimitive :: Text -> (Text -> Text)
 marshalPrimitive fieldName = \typename ->
   let
-    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+    setMethod = T.concat [T.pack "set", T.toTitle fieldName]
   in
     [text|
       contract_${typename}.${setMethod}(value_${typename}.${fieldName});

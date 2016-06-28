@@ -178,12 +178,11 @@ addNativeModuleWrapper owner project prefix content =
     contentT = T.pack content
   in
     T.unpack $ [text|
-      var _${ownerT}$${projectT}$${proto_modulename}_Internal_Proto = function(_elm) {
+      ${contentT}
 
-        ${contentT}
-
+      var _${ownerT}$${projectT}$${proto_modulename}_Internal_Proto = function() {
         return proto;
-      }
+      }();
     |]
 
 runClosureCompiler :: FilePath -> String -> String -> String -> IO ()
