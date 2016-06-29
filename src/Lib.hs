@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Lib
     ( parseProtoFile
@@ -182,7 +183,8 @@ genNativeMarshal packagename scope descriptor =
                 do
                   (fieldName, fieldTypeName) <- snd oneofData1
                   let (qualifier, justFieldTypename) = splitTypePath fieldTypeName
-                  return $ nativeOneofCaseMarshal (T.intercalate "." qualifier) typename oneofRecordFieldName fieldName justFieldTypename
+                  let qualifierPrefix :: Text = T.concat (fmap (\s -> T.toTitle s `T.append` (T.pack ".")) qualifier)
+                  return $ nativeOneofCaseMarshal qualifierPrefix typename oneofRecordFieldName fieldName justFieldTypename
           return $ nativeOneofMarshal typename oneofRecordFieldName oneofCaseMarshalers
       in T.concat marshalers
 
@@ -322,9 +324,14 @@ genNativeModule owner project outputPrefix protoModulename filename protoContent
       prefix <- ["encode", "decode", "marshal", "unmarshal"]
       return . nativeModuleExport $ T.concat [T.pack prefix, typename]
 
+    imports :: Text
+    imports = T.concat $ do
+      dependency <- dependencyModuleNames
+      return $ nativeModuleImport owner project outputPrefix dependency
+
     protoSource :: Text
     protoSource = toStrict . decodeUtf8 $ protoContents
-  in encodeUtf8 . fromStrict $ nativeModule owner project outputPrefix protoModulename (T.pack filename) packagename modulename protoSource values exports
+  in encodeUtf8 . fromStrict $ nativeModule owner project outputPrefix protoModulename (T.pack filename) packagename modulename protoSource values imports exports
 
 genPrimitiveTypeName :: FET.Type -> Text
 genPrimitiveTypeName t =

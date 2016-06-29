@@ -10,7 +10,7 @@ import NeatInterpolation        (text)
 
 import Utils
 
-nativeModule owner project prefix protoModulename filename packagename modulename protoSource moduleValues moduleExports =
+nativeModule owner project prefix protoModulename filename packagename modulename protoSource moduleValues moduleImports moduleExports =
   let dollar = T.pack "$"
   in [text|
     var _${owner}${dollar}${project}${dollar}Native_${prefix}_${modulename} = function() {
@@ -21,12 +21,20 @@ nativeModule owner project prefix protoModulename filename packagename modulenam
       // reference to the protobuf generated JavaScript
       var Proto = _${owner}${dollar}${project}${dollar}Native_${protoModulename}_Internal_Proto;
 
+      ${moduleImports}
+
       ${moduleValues}
 
       return {
         ${moduleExports}
       }
     }();
+  |]
+
+nativeModuleImport owner project prefix dependency =
+  let dollar = T.pack "$"
+  in [text|
+    var ${dependency} = _${owner}${dollar}${project}${dollar}Native_${prefix}_${dependency}
   |]
 
 nativeModuleExport valuename =
