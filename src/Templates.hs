@@ -121,7 +121,7 @@ nativeOneofCaseMarshal :: Text -> Text -> Text -> Text -> Text -> Text
 nativeOneofCaseMarshal qualifier typename oneofRecordFieldName fieldName fieldTypeName =
   let
     elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
-    setMethod = T.concat [T.pack "set", toTitlePreserving fieldName]
+    setMethod = T.concat [T.pack "set", T.toTitle fieldName]
   in
     [text|
       case "${elmOneofCaseName}":
