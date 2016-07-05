@@ -211,12 +211,13 @@ genNativeFieldUnmarshal scope fieldDescriptor =
         let
           (_,typename) = splitTypePath . toText $ tn
           qualifierList = getElmTypeQualifier scope $ toText tn
-          qualifier = T.intercalate (T.pack ".") qualifierList
+          --qualifier = T.intercalate (T.pack ".") qualifierList
+          qualifierPrefix :: Text = T.concat (fmap (\s -> T.toTitle s `T.append` (T.pack ".")) qualifierList)
         in
           case label of
-            FEL.LABEL_REQUIRED -> (name, unmarshalFunc qualifier typename name)
-            FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifier typename name)
-            FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifier typename name)
+            FEL.LABEL_REQUIRED -> (name, unmarshalFunc qualifierPrefix typename name)
+            FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifierPrefix typename name)
+            FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifierPrefix typename name)
 
 genNativeUnmarshal :: Scope -> DescriptorProto -> Text
 genNativeUnmarshal scope descriptor =
@@ -274,8 +275,10 @@ genNativeUnmarshal scope descriptor =
       let oneofCaseUnmarshalers = T.concat $
             do
               (fieldName, fieldNumber, fieldTypeName) <- snd oneofData1
-              let (qualifier, justFieldTypename) = splitTypePath fieldTypeName
-              return $ nativeOneofCaseUnmarshal (T.intercalate "." qualifier) typename oneofRecordFieldName fieldName (T.pack . show $ fieldNumber) justFieldTypename
+              let
+                (qualifier, justFieldTypename) = splitTypePath fieldTypeName
+                qualifierPrefix :: Text = T.concat (fmap (\s -> T.toTitle s `T.append` (T.pack ".")) qualifier)
+              return $ nativeOneofCaseUnmarshal qualifierPrefix typename oneofRecordFieldName fieldName (T.pack . show $ fieldNumber) justFieldTypename
       return $ (oneofRecordFieldName, nativeOneofUnmarshal typename oneofRecordFieldName oneofCaseUnmarshalers)
 
   in nativeMessageUnmarshal typename (standaloneFieldUnmarshalers ++ oneofFieldUnmarshalers)

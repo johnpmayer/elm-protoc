@@ -15,10 +15,7 @@ nativeModule owner project prefix protoModulename filename packagename modulenam
   in [text|
     var _${owner}${dollar}${project}${dollar}Native_${prefix}_${modulename} = function() {
 
-      // reference to the elm module - can't do this (circular dep)
-      // var _elm_module = _${owner}$${project}$${prefix}_${modulename};
-
-      // reference to the protobuf generated JavaScript
+      // reference to the protobuf generated JavaScript, wrapped as a "module"
       var Proto = _${owner}${dollar}${project}${dollar}Native_${protoModulename}_Internal_Proto;
 
       ${moduleImports}
@@ -163,7 +160,7 @@ nativeRecordMarshal packagename typename fields oneofFieldMarshalers =
 unmarshalPrimitive :: Text -> (Text -> Text)
 unmarshalPrimitive fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
       var ${fieldName} = ${contractValueName}.${getter}();
@@ -172,27 +169,33 @@ unmarshalPrimitive fieldName = \contractValueName ->
 unmarshalMaybePrimitive :: Text -> (Text -> Text)
 unmarshalMaybePrimitive fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
+    dollar = T.pack "$"
   in
     [text|
-      throw "Not implemented - optional field unmarshaling (${fieldName})";
-      var ${fieldName} = ${contractValueName}.${getter}();
+      var ${fieldName};
+      var tmp_${fieldName} = ${contractValueName}.${getter}();
+      if (tmp_${fieldName}) {
+        ${fieldName} = _elm_lang${dollar}core${dollar}Maybe${dollar}Just(tmp_${fieldName});
+      } else {
+        ${fieldName} = _elm_lang${dollar}core${dollar}Maybe${dollar}Nothing;
+      }
     |]
 
 unmarshalListPrimitive :: Text -> (Text -> Text)
 unmarshalListPrimitive fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
-      throw "Not implemented - repeated field unmarshaling (${fieldName})";
+      throw "Not implemented - repeated field unmarshaling ($fieldName})";
       var ${fieldName} = ${contractValueName}.${getter}();
     |]
 
 unmarshalFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalFunc qualifier typename fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
       var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
@@ -201,7 +204,7 @@ unmarshalFunc qualifier typename fieldName = \contractValueName ->
 unmarshalMaybeFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalMaybeFunc qualifier typename fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
       throw "Not implemented - optional field unmarshaling (${fieldName})";
@@ -211,7 +214,7 @@ unmarshalMaybeFunc qualifier typename fieldName = \contractValueName ->
 unmarshalListFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalListFunc qualifier typename fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
       throw "Not implemented - repeated field unmarshaling (${fieldName})";
@@ -222,12 +225,12 @@ nativeOneofCaseUnmarshal :: Text -> Text -> Text -> Text -> Text -> Text -> Text
 nativeOneofCaseUnmarshal qualifier typename oneofRecordFieldName fieldName fieldNumber fieldTypeName =
   let
     elmOneofCaseName = [text|${typename}_oneof_${oneofRecordFieldName}_${fieldName}|]
-    getter = T.concat [T.pack "get", toTitlePreserving fieldName]
+    getter = T.concat [T.pack "get", T.toTitle fieldName]
   in
     [text|
       case ${fieldNumber}:
         var tmp_${fieldTypeName} = ${qualifier}unmarshal${fieldTypeName}(${typename}_contract.${getter}());
-        ${oneofRecordFieldName} = _elm_module.values.${elmOneofCaseName}(tmp_${fieldTypeName});
+        ${oneofRecordFieldName} = {ctor: '${elmOneofCaseName}', _0: tmp_${fieldTypeName}};
         break;
     |]
 
@@ -253,15 +256,15 @@ nativeMessageUnmarshal typename fields =
     fieldUnmarshalStatements = T.unlines $ fmap makeFieldUnmarshalStatement fields
     constructorArguments = T.intercalate ", " . fmap fst $ fields
     applyN = T.concat [ T.pack "A", T.pack . show . length $ fields ]
-    returnExpression = case length fields of
-      0 -> [text| _elm_module.values.${typename} |]
-      1 -> [text| _elm_module.values.${typename}(${constructorArguments}) |]
-      _ -> [text| ${applyN}(_elm_module.values.${typename}, ${constructorArguments}) |]
+    makeFieldProperty field = T.concat [ field, T.pack ": ", field ]
+    fieldProperties = T.intercalate ", " . fmap (makeFieldProperty . fst) $ fields
   in
     [text|
       var unmarshal${typename} = function(${contractValueName}) {
         ${fieldUnmarshalStatements}
-        return ${returnExpression};
+        return {
+          ${fieldProperties}
+        }
       }
     |]
 
