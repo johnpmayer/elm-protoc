@@ -395,13 +395,13 @@ genElmField scope fieldDescriptor =
 
     typename :: Text
     typename =
-      case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
-        (Just t, _) -> genPrimitiveTypeName t
-        (_, Just tn) ->
           let
-            basetype = fullyQualifyElmType scope $ case toText <$> FE.extendee fieldDescriptor of
-              Nothing -> toTitlePreserving . toText $ tn
-              Just ee -> error "where?" -- T.concat [toTitlePreserving ee, "_", toText tn]
+            basetype = case (FE.type' fieldDescriptor, FE.type_name fieldDescriptor) of
+                        (Just t, _) -> genPrimitiveTypeName t
+                        (_, Just tn) ->
+                          fullyQualifyElmType scope $ case toText <$> FE.extendee fieldDescriptor of
+                            Nothing -> toTitlePreserving . toText $ tn
+                            Just ee -> error "where?" -- T.concat [toTitlePreserving ee, "_", toText tn]
           in
             case FE.label fieldDescriptor of
               Nothing -> error "what's the default - required/optional/repeated"
