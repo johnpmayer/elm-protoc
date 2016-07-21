@@ -343,6 +343,7 @@ genPrimitiveTypeName t =
     FET.TYPE_UINT64   -> "Int"
     FET.TYPE_INT32    -> "Int"
     FET.TYPE_STRING   -> "String"
+    FET.TYPE_BOOL     -> "Bool"
     _                 -> error $ "type not implemented - pull request - " ++ show t
 
 newtype FullyQualifiedName = FQN { getFQN :: Text } deriving (Show)
