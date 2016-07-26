@@ -100,5 +100,5 @@ closure_compiler_url = "http://dl.google.com/closure-compiler/compiler-latest.zi
 closure_compiler_dir :: FilePath
 closure_compiler_dir = temp_dir </> "closure_compiler"
 
-closure_compiler_jar :: FilePath
-closure_compiler_jar = closure_compiler_dir </> "compiler.jar"
+closure_compiler_jar_pattern :: FilePath
+closure_compiler_jar_pattern = closure_compiler_dir </> "closure-compiler-*.jar"

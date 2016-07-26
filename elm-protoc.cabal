@@ -46,6 +46,7 @@ executable elm-protoc
                       , directory
                       , elm-protoc
                       , filepath
+                      , Glob
                       , http-client
                       , http-client-tls
                       , http-types

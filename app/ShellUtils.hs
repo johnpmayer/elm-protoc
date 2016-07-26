@@ -16,6 +16,7 @@ import Shelly (Sh, findWhen, fromText, hasExt, shelly, toTextIgnore)
 import qualified Shelly as Sh
 import System.Directory
 import System.FilePath
+import System.FilePath.Glob (glob)
 import System.Process
 import Text.Regex.Base (matchAllText, makeRegex)
 import Text.Regex.PCRE.String (Regex)
@@ -96,7 +97,10 @@ ensureClosureLibraryAvailable =
 -- Installing Closure Compiler
 
 isClosureCompilerMissing :: IO Bool
-isClosureCompilerMissing = not <$> doesFileExist closure_compiler_jar
+isClosureCompilerMissing = do
+  paths <- glob closure_compiler_jar_pattern
+  --putStrLn $ "Compiler paths: " ++ (show paths)
+  return . null $ paths
 
 ensureClosureCompilerAvailable :: (MonadIO m, MonadError String m) => m ()
 ensureClosureCompilerAvailable =
@@ -188,6 +192,7 @@ addNativeModuleWrapper owner project prefix content =
 runClosureCompiler :: FilePath -> String -> String -> String -> IO ()
 runClosureCompiler outputDir owner project prefix = do
   putStrLn "Minifying protoc generated code & dependencies"
+  [closure_compiler_jar] <- glob closure_compiler_jar_pattern
   compiler_output <- readProcess "java"
     [ "-jar", closure_compiler_jar
     , "--dependency_mode", "STRICT"
