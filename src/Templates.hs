@@ -185,11 +185,12 @@ unmarshalMaybePrimitive fieldName = \contractValueName ->
 unmarshalListPrimitive :: Text -> (Text -> Text)
 unmarshalListPrimitive fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", T.toTitle fieldName]
+    listGetter = T.concat [T.pack "get", T.toTitle fieldName, T.pack "List"]
+    fromArray = "_elm_lang$core$Native_List.fromArray"
   in
     [text|
-      throw "Not implemented - repeated field unmarshaling ($fieldName})";
-      var ${fieldName} = ${contractValueName}.${getter}();
+      var ${fieldName}_list = ${contractValueName}.${listGetter}();
+      var ${fieldName} = ${fromArray}(${fieldName}_list);
     |]
 
 unmarshalFunc :: Text -> Text -> Text -> (Text -> Text)
@@ -205,20 +206,29 @@ unmarshalMaybeFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalMaybeFunc qualifier typename fieldName = \contractValueName ->
   let
     getter = T.concat [T.pack "get", T.toTitle fieldName]
+    nothing = "_elm_lang$core$Maybe$Nothing"
+    just = "_elm_lang$core$Maybe$Just"
   in
     [text|
-      throw "Not implemented - optional field unmarshaling (${fieldName})";
-      var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+      var tmp_${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+      var ${fieldName};
+      if (tmp_${fieldName}) {
+        ${fieldName} = ${just}(tmp_${fieldName});
+      } else {
+        ${fieldName} = $nothing;
+      }
     |]
 
 unmarshalListFunc :: Text -> Text -> Text -> (Text -> Text)
 unmarshalListFunc qualifier typename fieldName = \contractValueName ->
   let
-    getter = T.concat [T.pack "get", T.toTitle fieldName]
+    listGetter = T.concat [T.pack "get", T.toTitle fieldName, T.pack "List"]
+    fromArray = "_elm_lang$core$Native_List.fromArray"
   in
     [text|
-      throw "Not implemented - repeated field unmarshaling (${fieldName})";
-      var ${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+      var ${fieldName}_contracts_list = ${contractValueName}.${listGetter}();
+      var ${fieldName}_list = ${fieldName}_contracts_list.map(x => ${qualifier}unmarshal${typename}(x));
+      var ${fieldName} = ${fromArray}(${fieldName}_list);
     |]
 
 nativeOneofCaseUnmarshal :: Text -> Text -> Text -> Text -> Text -> Text -> Text
