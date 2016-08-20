@@ -210,10 +210,10 @@ unmarshalMaybeFunc qualifier typename fieldName = \contractValueName ->
     just = "_elm_lang$core$Maybe$Just"
   in
     [text|
-      var tmp_${fieldName} = ${qualifier}unmarshal${typename}(${contractValueName}.${getter}());
+      var tmp_${fieldName} = ${contractValueName}.${getter}();
       var ${fieldName};
       if (tmp_${fieldName}) {
-        ${fieldName} = ${just}(tmp_${fieldName});
+        ${fieldName} = ${just}(${qualifier}unmarshal${typename}(tmp_${fieldName}));
       } else {
         ${fieldName} = $nothing;
       }
