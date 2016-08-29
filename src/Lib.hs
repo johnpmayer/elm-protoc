@@ -209,15 +209,14 @@ genNativeFieldUnmarshal scope fieldDescriptor =
           FEL.LABEL_REPEATED -> (name, unmarshalListPrimitive name)
       (_, Just tn) ->
         let
-          (_,typename) = splitTypePath . toText $ tn
-          qualifierList = getElmTypeQualifier scope $ toText tn
-          --qualifier = T.intercalate (T.pack ".") qualifierList
-          qualifierPrefix :: Text = T.concat (fmap (\s -> T.toTitle s `T.append` (T.pack ".")) qualifierList)
+          fieldTypeName = toText tn
+          (qualifier, justFieldTypename) = splitTypePath fieldTypeName
+          qualifierPrefix :: Text = T.concat (fmap (\s -> T.toTitle s `T.append` (T.pack ".")) qualifier)
         in
           case label of
-            FEL.LABEL_REQUIRED -> (name, unmarshalFunc qualifierPrefix typename name)
-            FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifierPrefix typename name)
-            FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifierPrefix typename name)
+            FEL.LABEL_REQUIRED -> (name, unmarshalFunc qualifierPrefix justFieldTypename name)
+            FEL.LABEL_OPTIONAL -> (name, unmarshalMaybeFunc qualifierPrefix justFieldTypename name)
+            FEL.LABEL_REPEATED -> (name, unmarshalListFunc qualifierPrefix justFieldTypename name)
 
 genNativeUnmarshal :: Scope -> DescriptorProto -> Text
 genNativeUnmarshal scope descriptor =
